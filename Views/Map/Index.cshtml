@@ -53,6 +53,42 @@
             </svg>
             <span class="gm-sidebar-text">Bật cảnh báo<br>vị trí</span>
         </button>
+        <button class="gm-sidebar-btn" id="btnNearbyPanel" title="Tìm dịch vụ gần bạn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 2v3"></path>
+                <path d="M12 19v3"></path>
+                <path d="M2 12h3"></path>
+                <path d="M19 12h3"></path>
+                <path d="M18.4 5.6l-2.1 2.1"></path>
+                <path d="M7.7 16.3l-2.1 2.1"></path>
+            </svg>
+            <span class="gm-sidebar-text">Gần tôi</span>
+        </button>
+        <button class="gm-sidebar-btn" id="btnFilterPanel" title="Bộ lọc sự cố">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <path d="M3 5h18"></path>
+                <path d="M6 12h12"></path>
+                <path d="M10 19h4"></path>
+            </svg>
+            <span class="gm-sidebar-text">Bộ lọc</span>
+            <span class="gm-sidebar-badge" id="gmFilterBadge" style="display:none">0</span>
+        </button>
+        <button class="gm-sidebar-btn" id="btnLayerPanel" title="Lớp bản đồ">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <path d="M12 2 2 7l10 5 10-5-10-5z"></path>
+                <path d="m2 12 10 5 10-5"></path>
+                <path d="m2 17 10 5 10-5"></path>
+            </svg>
+            <span class="gm-sidebar-text">Lớp</span>
+        </button>
+        <button class="gm-sidebar-btn" id="btnSafeRoutePanel" title="Tuyến đường an toàn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                <path d="M12 22s7-4 7-10V5l-7-3-7 3v7c0 6 7 10 7 10z"></path>
+                <path d="m9 12 2 2 4-5"></path>
+            </svg>
+            <span class="gm-sidebar-text">Tuyến<br>an toàn</span>
+        </button>
     </div>
 
     <!-- ════ FLOATING PANEL (Google Maps style) ════ -->
@@ -162,6 +198,14 @@
 
             <!-- Nút tìm đường -->
             <div class="gm-route-actions">
+                <label class="gm-safe-route-toggle">
+                    <input type="checkbox" id="safeRouteToggle" />
+                    <span class="gm-toggle-ui"></span>
+                    <span>
+                        <strong>Tránh điểm nóng</strong>
+                        <small>Cảnh báo nếu tuyến đi gần sự cố</small>
+                    </span>
+                </label>
                 <button class="gm-find-btn" id="btnFindRoute">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
                         <polygon points="3 11 22 2 13 21 11 13 3 11"/>
@@ -172,6 +216,7 @@
 
             <!-- Trạng thái -->
             <div class="gm-route-status" id="routeStatus" style="display:none"></div>
+            <div class="gm-safe-route-status" id="safeRouteStatus" style="display:none"></div>
 
             <!-- Kết quả 3 phương tiện -->
             <div class="gm-route-results" id="routeResults" style="display:none">
@@ -213,10 +258,142 @@
 
         </div><!-- /gm-route-card -->
 
+        <div class="gm-nearby-panel" id="gmNearbyPanel" style="display:none">
+            <div class="gm-nearby-header">
+                <div>
+                    <div class="gm-nearby-title">Cần hỗ trợ gần bạn?</div>
+                    <div class="gm-nearby-subtitle">Chọn một nhu cầu để tìm trong bản đồ</div>
+                </div>
+                <button class="gm-nearby-close" id="btnNearbyClose" title="Đóng">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="gm-nearby-picker" id="gmNearbyPicker">
+                <button class="gm-nearby-option" data-nearby-type="motorcycle_repair" data-nearby-label="Hư xe / tắt xe">
+                    <span class="gm-nearby-option__icon">W</span>
+                    <span>Hư xe / tắt xe</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="fuel" data-nearby-label="Hết xăng">
+                    <span class="gm-nearby-option__icon">Xăng</span>
+                    <span>Hết xăng</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="hospital" data-nearby-label="Cần bệnh viện">
+                    <span class="gm-nearby-option__icon">BV</span>
+                    <span>Cần bệnh viện</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="pharmacy" data-nearby-label="Cần nhà thuốc">
+                    <span class="gm-nearby-option__icon">Thuốc</span>
+                    <span>Cần nhà thuốc</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="atm" data-nearby-label="Cần ATM">
+                    <span class="gm-nearby-option__icon">ATM</span>
+                    <span>Cần ATM</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="police" data-nearby-label="Cần công an">
+                    <span class="gm-nearby-option__icon">CA</span>
+                    <span>Cần công an</span>
+                </button>
+                <button class="gm-nearby-option" data-nearby-type="fire_station" data-nearby-label="Cần cứu hỏa">
+                    <span class="gm-nearby-option__icon">114</span>
+                    <span>Cần cứu hỏa</span>
+                </button>
+                <button class="gm-nearby-option gm-nearby-option--urgent" data-nearby-type="emergency" data-nearby-label="Gọi khẩn cấp">
+                    <span class="gm-nearby-option__icon">SOS</span>
+                    <span>Gọi khẩn cấp</span>
+                </button>
+            </div>
+            <div class="gm-nearby-status" id="gmNearbyStatus" style="display:none"></div>
+            <div class="gm-nearby-results" id="gmNearbyResults" style="display:none"></div>
+        </div>
+
+        <div class="gm-maptool-panel" id="gmFilterPanel" style="display:none">
+            <div class="gm-maptool-header">
+                <div>
+                    <div class="gm-maptool-title">Bộ lọc sự cố</div>
+                    <div class="gm-maptool-subtitle">Lọc theo loại và trạng thái báo cáo</div>
+                </div>
+                <button class="gm-maptool-close" id="btnFilterClose" title="Đóng">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="gm-maptool-body">
+                <div class="gm-maptool-section">
+                    <div class="gm-maptool-label">Loại sự cố</div>
+                    <div class="gm-filter-chips" id="gmFilterTypes"></div>
+                </div>
+                <div class="gm-maptool-section">
+                    <div class="gm-maptool-label">Trạng thái</div>
+                    <div class="gm-filter-chips" id="gmFilterStatuses">
+                        <button type="button" class="gm-chip" data-filter-status="VISIBLE_VERIFIED">Đã xác thực</button>
+                        <button type="button" class="gm-chip" data-filter-status="VISIBLE_UNVERIFIED">Chưa xác thực</button>
+                        <button type="button" class="gm-chip" data-filter-status="NEEDS_MORE_INFO,NOT_ENOUGH_EVIDENCE">Cần bổ sung</button>
+                        <button type="button" class="gm-chip" data-filter-status="RESOLVED">Đã xử lý</button>
+                        <button type="button" class="gm-chip" data-filter-status="REJECTED,EXPIRED">Đã ẩn</button>
+                    </div>
+                </div>
+                <button type="button" class="gm-maptool-reset" id="btnClearMapFilters">Xóa lọc</button>
+            </div>
+        </div>
+
+        <div class="gm-maptool-panel" id="gmLayerPanel" style="display:none">
+            <div class="gm-maptool-header">
+                <div>
+                    <div class="gm-maptool-title">Lớp bản đồ</div>
+                    <div class="gm-maptool-subtitle">Tùy chỉnh lớp hiển thị trên bản đồ</div>
+                </div>
+                <button class="gm-maptool-close" id="btnLayerClose" title="Đóng">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="gm-maptool-body">
+                <div class="gm-maptool-section">
+                    <div class="gm-maptool-label">Nền bản đồ</div>
+                    <div class="gm-segmented">
+                        <button type="button" class="active" id="btnBaseMap">Bản đồ</button>
+                        <button type="button" id="btnSatelliteMap">Vệ tinh</button>
+                    </div>
+                </div>
+                <label class="gm-layer-row">
+                    <span>Báo cáo sự cố</span>
+                    <input type="checkbox" id="layerAlertsToggle" checked />
+                </label>
+                <label class="gm-layer-row">
+                    <span>Vùng nhiệt</span>
+                    <input type="checkbox" id="layerHeatmapToggle" checked />
+                </label>
+                <label class="gm-layer-row">
+                    <span>Ranh giới khu vực</span>
+                    <input type="checkbox" id="layerBoundaryToggle" checked />
+                </label>
+            </div>
+        </div>
+
     </div><!-- /gm-panel -->
 
     <!-- ════ BẢN ĐỒ ════ -->
     <div id="map"></div>
+    <button class="gm-refresh-location" id="btnRefreshNearbyLocation" style="display:none" title="Làm mới vị trí">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" width="16" height="16">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"></path>
+            <path d="M21 3v6h-6"></path>
+        </svg>
+        Làm mới vị trí
+    </button>
+    <div class="gm-nearby-loading" id="gmNearbyLoading" style="display:none">
+        <div class="gm-nearby-loading__box">
+            <div class="gm-nearby-spinner"></div>
+            <div>Đang tìm kiếm gần bạn...</div>
+        </div>
+    </div>
 
 </div><!-- /gm-container -->
 
@@ -253,6 +430,7 @@
         };
     </script>
     <script src="~/js/map-core.js" asp-append-version="true"></script>
+    <script src="~/js/map-nearby.js" asp-append-version="true"></script>
     <script src="~/js/map-routing.js" asp-append-version="true"></script>
     <script src="~/js/map-data.js" asp-append-version="true"></script>
     <script src="~/js/map-report.js" asp-append-version="true"></script>

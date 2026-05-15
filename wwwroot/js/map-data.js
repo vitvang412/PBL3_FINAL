@@ -54,6 +54,7 @@ window.SVG_ICONS = SVG_ICONS;
 
 let currentHours = 24;
 let alertsCache = [];
+let rawAlertsCache = [];
 let alertTypesCache = [];
 let currentMode = null;       // 'heatmap' | 'cluster' | 'marker'
 let activeMarkers = [];       // goongjs.Marker instances
@@ -67,6 +68,13 @@ let userLocationLatLng = null;
 let proximityToastQueue = [];
 let proximityToastActive = false;
 let queuedProximityAlertIds = new Set();
+let selectedTypeSlugs = new Set();
+let selectedStatuses = new Set();
+let mapLayerState = {
+    alertsVisible: true,
+    heatmapVisible: true,
+    boundaryVisible: true
+};
 
 const PROXIMITY_RADIUS_METERS = 300;
 const PROXIMITY_ALERT_COOLDOWN_MS = 10 * 60 * 1000;
@@ -107,6 +115,9 @@ function init() {
 
     initHiddenAlertsToggle();
     initProximityToggle();
+    initFilterPanel();
+    initLayerPanel();
+    initSafeRouteShortcut();
 
     // Đợi map sẵn sàng
     waitForMap(() => {
@@ -118,6 +129,7 @@ function init() {
 
         // Load types 1 lần
         fetchAlertTypes().then(() => {
+            renderFilterTypeOptions();
             refresh();
         });
 
@@ -174,6 +186,162 @@ function initProximityToggle() {
 
     renderProximityToggle();
     button.addEventListener('click', toggleProximityAlerts);
+}
+
+function initFilterPanel() {
+    const panel = document.getElementById('gmFilterPanel');
+    const openBtn = document.getElementById('btnFilterPanel');
+    const closeBtn = document.getElementById('btnFilterClose');
+    const clearBtn = document.getElementById('btnClearMapFilters');
+    if (!panel || !openBtn) return;
+
+    openBtn.addEventListener('click', () => toggleMapToolPanel('gmFilterPanel', openBtn));
+    closeBtn?.addEventListener('click', () => closeMapToolPanel('gmFilterPanel', openBtn));
+    clearBtn?.addEventListener('click', () => {
+        selectedTypeSlugs.clear();
+        selectedStatuses.clear();
+        document.querySelectorAll('#gmFilterPanel .gm-chip.active').forEach(el => el.classList.remove('active'));
+        updateFilterBadge();
+        refresh();
+    });
+
+    document.querySelectorAll('#gmFilterStatuses .gm-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.toggle('active');
+            const statuses = (btn.dataset.filterStatus || '').split(',').filter(Boolean);
+            statuses.forEach(status => {
+                if (btn.classList.contains('active')) selectedStatuses.add(status);
+                else selectedStatuses.delete(status);
+            });
+            updateFilterBadge();
+            refresh();
+        });
+    });
+}
+
+function initLayerPanel() {
+    const panel = document.getElementById('gmLayerPanel');
+    const openBtn = document.getElementById('btnLayerPanel');
+    const closeBtn = document.getElementById('btnLayerClose');
+    if (!panel || !openBtn) return;
+
+    const floatingSatellite = document.getElementById('btnToggleSatellite');
+    if (floatingSatellite) floatingSatellite.style.display = 'none';
+
+    openBtn.addEventListener('click', () => toggleMapToolPanel('gmLayerPanel', openBtn));
+    closeBtn?.addEventListener('click', () => closeMapToolPanel('gmLayerPanel', openBtn));
+
+    const baseBtn = document.getElementById('btnBaseMap');
+    const satBtn = document.getElementById('btnSatelliteMap');
+    baseBtn?.addEventListener('click', () => setSatelliteFromPanel(false));
+    satBtn?.addEventListener('click', () => setSatelliteFromPanel(true));
+
+    document.getElementById('layerAlertsToggle')?.addEventListener('change', e => {
+        setLayerVisibility({ alertsVisible: e.target.checked });
+    });
+    document.getElementById('layerHeatmapToggle')?.addEventListener('change', e => {
+        setLayerVisibility({ heatmapVisible: e.target.checked });
+    });
+    document.getElementById('layerBoundaryToggle')?.addEventListener('change', e => {
+        mapLayerState.boundaryVisible = e.target.checked;
+        window.MapLayers?.setBoundary?.(mapLayerState.boundaryVisible);
+    });
+}
+
+function initSafeRouteShortcut() {
+    const btn = document.getElementById('btnSafeRoutePanel');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        closeMapToolPanel('gmFilterPanel', document.getElementById('btnFilterPanel'));
+        closeMapToolPanel('gmLayerPanel', document.getElementById('btnLayerPanel'));
+        if (window.MapNearby) window.MapNearby.close();
+        const search = document.getElementById('stateSearch');
+        const placeCard = document.getElementById('gmPlaceCard');
+        const routeCard = document.getElementById('gmRouteCard');
+        if (search) search.style.display = 'none';
+        if (placeCard) placeCard.style.display = 'none';
+        if (routeCard) routeCard.style.display = 'block';
+        document.getElementById('safeRouteToggle')?.focus();
+    });
+}
+
+function toggleMapToolPanel(panelId, button) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    const willOpen = panel.style.display === 'none' || !panel.style.display;
+    ['gmFilterPanel', 'gmLayerPanel', 'gmNearbyPanel'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && id !== panelId) el.style.display = 'none';
+    });
+    document.querySelectorAll('.gm-sidebar-btn').forEach(btn => {
+        if (btn.id !== button?.id && ['btnFilterPanel', 'btnLayerPanel', 'btnNearbyPanel'].includes(btn.id)) {
+            btn.classList.remove('active');
+        }
+    });
+    const search = document.getElementById('stateSearch');
+    const placeCard = document.getElementById('gmPlaceCard');
+    const routeCard = document.getElementById('gmRouteCard');
+    if (willOpen) {
+        if (window.MapNearby) window.MapNearby.close();
+        if (search) search.style.display = 'none';
+        if (placeCard) placeCard.style.display = 'none';
+        if (routeCard) routeCard.style.display = 'none';
+        panel.style.display = 'block';
+        button?.classList.add('active');
+    } else {
+        panel.style.display = 'none';
+        button?.classList.remove('active');
+        if (search) search.style.display = 'block';
+    }
+}
+
+function closeMapToolPanel(panelId, button) {
+    const panel = document.getElementById(panelId);
+    if (panel) panel.style.display = 'none';
+    button?.classList.remove('active');
+}
+
+function setSatelliteFromPanel(enabled) {
+    window.MapLayers?.setSatellite?.(enabled);
+    document.getElementById('btnBaseMap')?.classList.toggle('active', !enabled);
+    document.getElementById('btnSatelliteMap')?.classList.toggle('active', enabled);
+}
+
+function renderFilterTypeOptions() {
+    const box = document.getElementById('gmFilterTypes');
+    if (!box) return;
+    if (!alertTypesCache.length) {
+        box.innerHTML = '<div class="gm-filter-empty">Chưa có loại sự cố</div>';
+        return;
+    }
+
+    box.innerHTML = alertTypesCache.map(type => {
+        const slug = type.slug || type.Slug || '';
+        const name = type.name || type.Name || slug;
+        const color = type.categoryColor || type.CategoryColor || '#10b981';
+        return `<button type="button" class="gm-chip" data-filter-type="${escHtml(slug)}" style="--chip-color:${escHtml(color)}">${escHtml(name)}</button>`;
+    }).join('');
+
+    box.querySelectorAll('[data-filter-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const slug = btn.dataset.filterType;
+            btn.classList.toggle('active');
+            if (btn.classList.contains('active')) selectedTypeSlugs.add(slug);
+            else selectedTypeSlugs.delete(slug);
+            updateFilterBadge();
+            refresh();
+        });
+    });
+}
+
+function updateFilterBadge() {
+    const activeTypeChips = document.querySelectorAll('#gmFilterTypes .gm-chip.active').length;
+    const activeStatusChips = document.querySelectorAll('#gmFilterStatuses .gm-chip.active').length;
+    const count = activeTypeChips + activeStatusChips;
+    const badge = document.getElementById('gmFilterBadge');
+    if (!badge) return;
+    badge.textContent = String(count);
+    badge.style.display = count > 0 ? 'inline-flex' : 'none';
 }
 
 function renderProximityToggle() {
@@ -1062,6 +1230,47 @@ function clearAllLayers() {
     if (map.getSource('alerts-heat')) map.removeSource('alerts-heat');
 }
 
+function applyAlertFilters(alerts) {
+    return (alerts || []).filter(alert => {
+        if (selectedTypeSlugs.size > 0 && !selectedTypeSlugs.has(alert.alertTypeSlug || '')) return false;
+        if (selectedStatuses.size > 0 && !selectedStatuses.has(alert.status || '')) return false;
+        return true;
+    });
+}
+
+function hasActiveMapFilters() {
+    return selectedTypeSlugs.size > 0 || selectedStatuses.size > 0;
+}
+
+function alertsToHeatmapPoints(alerts) {
+    return (alerts || [])
+        .map(alert => ({
+            lat: parseFloat(alert.latitude),
+            lng: parseFloat(alert.longitude),
+            intensity: alert.status === 'VISIBLE_VERIFIED' ? 1.3 : 1
+        }))
+        .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+}
+
+function setFilters(filters = {}) {
+    if (Array.isArray(filters.typeSlugs)) selectedTypeSlugs = new Set(filters.typeSlugs);
+    if (Array.isArray(filters.statuses)) selectedStatuses = new Set(filters.statuses);
+    updateFilterBadge();
+    refresh();
+}
+
+function setLayerVisibility(next = {}) {
+    mapLayerState = { ...mapLayerState, ...next };
+    if (typeof next.boundaryVisible === 'boolean') {
+        window.MapLayers?.setBoundary?.(next.boundaryVisible);
+    }
+    refresh();
+}
+
+function getVisibleAlerts() {
+    return alertsCache.slice();
+}
+
 async function updateMapView() {
     const map = window.MapCore.getMap();
     if (!map) return;
@@ -1089,25 +1298,36 @@ async function refreshData() {
 
     clearAllLayers();
 
-    // 1. Luôn vẽ Heatmap ở lớp nền
-    const points = await fetchHeatmapData(fromTime, now);
-    renderHeatmapLayer(points);
-
-    // 2. Vẽ thêm các lớp tương tác (Cluster hoặc Marker) tùy theo mức Zoom
     const zoom = map.getZoom();
-    const alerts = await fetchMapAlerts(bounds, fromTime, now, showHiddenAlerts);
-    alertsCache = alerts;
+    rawAlertsCache = await fetchMapAlerts(bounds, fromTime, now, showHiddenAlerts);
+    alertsCache = applyAlertFilters(rawAlertsCache);
+
+    if (!mapLayerState.alertsVisible) {
+        updateAlertCount();
+        document.dispatchEvent(new CustomEvent('map:alerts-refreshed', { detail: { alerts: alertsCache } }));
+        return;
+    }
+
+    if (mapLayerState.heatmapVisible) {
+        if (hasActiveMapFilters()) {
+            renderHeatmapLayer(alertsToHeatmapPoints(alertsCache));
+        } else {
+            const points = await fetchHeatmapData(fromTime, now);
+            renderHeatmapLayer(points);
+        }
+    }
 
     if (zoom >= ZOOM_MARKER_MIN) {
-        renderIndividualMarkers(alerts);
+        renderIndividualMarkers(alertsCache);
     } else {
         // Chế độ Cluster (hiện số lượng) — chạy từ zoom 2 trở lên
-        renderClusterLayer(alerts);
+        renderClusterLayer(alertsCache);
     }
-    console.log(`[MapData] Fetched ${alerts.length} alerts. Zoom: ${zoom}`);
+    console.log(`[MapData] Fetched ${rawAlertsCache.length} alerts, visible ${alertsCache.length}. Zoom: ${zoom}`);
 
     // Update alert count badge
     updateAlertCount();
+    document.dispatchEvent(new CustomEvent('map:alerts-refreshed', { detail: { alerts: alertsCache } }));
 }
 
 function setTimeWindow(hours) {
@@ -1379,6 +1599,9 @@ window.MapData = {
     refresh,
     setTimeWindow,
     openAlert,
+    setFilters,
+    setLayerVisibility,
+    getVisibleAlerts,
     _verify: sendVerification,
     _resolve: markResolved,
     _toggleReportForm: toggleReportForm,

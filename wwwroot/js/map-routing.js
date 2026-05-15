@@ -78,6 +78,8 @@ function initRouting(map) {
     const elStatus = document.getElementById('routeStatus');
     const elResults = document.getElementById('routeResults');
     const routeCard = document.getElementById('gmRouteCard');
+    const safeToggle = document.getElementById('safeRouteToggle');
+    const safeStatus = document.getElementById('safeRouteStatus');
 
     // ── State ─────────────────────────────────────────────
     let coordStart = null, coordEnd = null;
@@ -85,6 +87,11 @@ function initRouting(map) {
 
     let storedRoutes = { driving: null, motorbike: null, foot: null };
     let activeMode = 'driving';
+    const SAFE_ROUTE_RADIUS_METERS = 250;
+    const SAFE_ROUTE_SOURCE_ID = 'safe-route-risk-src';
+    const SAFE_ROUTE_FILL_LAYER_ID = 'safe-route-risk-fill';
+    const SAFE_ROUTE_STROKE_LAYER_ID = 'safe-route-risk-stroke';
+    let lastRiskAlerts = [];
 
     // ── Pre-fill khi mở từ Place Card ─────────────────────
     if (routeCard) {
@@ -245,6 +252,7 @@ function initRouting(map) {
             setActiveResult(id);
             activeMode = mode;
             redrawRoute(storedRoutes[mode].geometry);
+            if (safeToggle?.checked) analyzeSafeRoute(storedRoutes[mode].geometry);
         });
     });
 
@@ -322,6 +330,8 @@ function initRouting(map) {
             drawRoute(drivingRoute.geometry);
             placeMarkers(coordStart, coordEnd, sv, ev);
             setActiveResult('resDriving');
+            if (safeToggle?.checked) analyzeSafeRoute(drivingRoute.geometry);
+            else clearSafeRouteRisk();
 
             if (elResults) elResults.style.display = 'block';
             hideStatus();
@@ -392,6 +402,16 @@ function initRouting(map) {
         if (inpEnd) inpEnd.value = '';
         coordStart = coordEnd = null;
         window.RouteStartCoord = window.RouteEndCoord = null;
+        clearSafeRouteRisk();
+    });
+
+    safeToggle?.addEventListener('change', () => {
+        if (!safeToggle.checked) {
+            clearSafeRouteRisk();
+            return;
+        }
+        const route = storedRoutes[activeMode] || storedRoutes.driving;
+        if (route?.geometry) analyzeSafeRoute(route.geometry);
     });
 
     // ─────────────────────────────────────────────────────
@@ -454,6 +474,172 @@ function initRouting(map) {
         if (map.getSource('route-src')) map.removeSource('route-src');
         startMarker?.remove(); startMarker = null;
         endMarker?.remove(); endMarker = null;
+        clearSafeRouteRisk();
+    }
+
+    function analyzeSafeRoute(geometry) {
+        if (!geometry?.coordinates?.length) return;
+        const alerts = (window.MapData?.getVisibleAlerts?.() || [])
+            .filter(a => !['RESOLVED', 'REJECTED', 'EXPIRED'].includes(a.status || ''));
+        const riskAlerts = alerts
+            .map(alert => {
+                const lat = parseFloat(alert.latitude);
+                const lng = parseFloat(alert.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+                const distance = minDistanceToRouteMeters([lng, lat], geometry.coordinates);
+                return { ...alert, _routeDistance: distance };
+            })
+            .filter(Boolean)
+            .filter(alert => alert._routeDistance <= SAFE_ROUTE_RADIUS_METERS)
+            .sort((a, b) => a._routeDistance - b._routeDistance);
+
+        lastRiskAlerts = riskAlerts;
+        drawSafeRouteRisk(riskAlerts);
+        renderSafeRouteStatus(riskAlerts);
+    }
+
+    function drawSafeRouteRisk(riskAlerts) {
+        clearSafeRouteRiskLayersOnly();
+        if (!riskAlerts.length) return;
+
+        const data = {
+            type: 'FeatureCollection',
+            features: riskAlerts.map(alert => ({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [parseFloat(alert.longitude), parseFloat(alert.latitude)]
+                },
+                properties: {
+                    id: alert.id,
+                    title: alert.title || 'Sự cố gần tuyến',
+                    status: alert.status || ''
+                }
+            }))
+        };
+
+        map.addSource(SAFE_ROUTE_SOURCE_ID, { type: 'geojson', data });
+        map.addLayer({
+            id: SAFE_ROUTE_FILL_LAYER_ID,
+            type: 'circle',
+            source: SAFE_ROUTE_SOURCE_ID,
+            paint: {
+                'circle-radius': metersToPixels(SAFE_ROUTE_RADIUS_METERS, map.getCenter().lat, map.getZoom()),
+                'circle-color': '#ef4444',
+                'circle-opacity': 0.14
+            }
+        });
+        map.addLayer({
+            id: SAFE_ROUTE_STROKE_LAYER_ID,
+            type: 'circle',
+            source: SAFE_ROUTE_SOURCE_ID,
+            paint: {
+                'circle-radius': metersToPixels(SAFE_ROUTE_RADIUS_METERS, map.getCenter().lat, map.getZoom()),
+                'circle-color': '#ef4444',
+                'circle-opacity': 0,
+                'circle-stroke-color': '#ef4444',
+                'circle-stroke-width': 2,
+                'circle-stroke-opacity': 0.45
+            }
+        });
+    }
+
+    map.on('zoom', () => {
+        if (!map.getLayer(SAFE_ROUTE_FILL_LAYER_ID)) return;
+        const radius = metersToPixels(SAFE_ROUTE_RADIUS_METERS, map.getCenter().lat, map.getZoom());
+        map.setPaintProperty(SAFE_ROUTE_FILL_LAYER_ID, 'circle-radius', radius);
+        map.setPaintProperty(SAFE_ROUTE_STROKE_LAYER_ID, 'circle-radius', radius);
+    });
+
+    function renderSafeRouteStatus(riskAlerts) {
+        if (!safeStatus) return;
+        if (!safeToggle?.checked) {
+            safeStatus.style.display = 'none';
+            safeStatus.innerHTML = '';
+            return;
+        }
+
+        if (!riskAlerts.length) {
+            safeStatus.className = 'gm-safe-route-status gm-safe-route-status--ok';
+            safeStatus.style.display = 'block';
+            safeStatus.innerHTML = '<strong>Tuyến hiện tại khá an toàn.</strong><span>Không có điểm nóng nào trong phạm vi 250m.</span>';
+            return;
+        }
+
+        const nearest = Math.round(riskAlerts[0]._routeDistance);
+        const commonType = getMostCommonType(riskAlerts);
+        safeStatus.className = 'gm-safe-route-status gm-safe-route-status--warn';
+        safeStatus.style.display = 'block';
+        safeStatus.innerHTML = `
+            <strong>Có ${riskAlerts.length} điểm nóng gần tuyến.</strong>
+            <span>Gần nhất ${nearest}m${commonType ? ` · Nhiều nhất: ${escHtml(commonType)}` : ''}</span>
+            <button type="button" id="btnViewRouteRisks">Xem điểm rủi ro</button>
+        `;
+        document.getElementById('btnViewRouteRisks')?.addEventListener('click', focusRiskAlerts);
+    }
+
+    function focusRiskAlerts() {
+        if (!lastRiskAlerts.length) return;
+        const bounds = new goongjs.LngLatBounds();
+        lastRiskAlerts.forEach(a => bounds.extend([parseFloat(a.longitude), parseFloat(a.latitude)]));
+        map.fitBounds(bounds, { padding: 100, maxZoom: 15, duration: 800 });
+    }
+
+    function clearSafeRouteRisk() {
+        clearSafeRouteRiskLayersOnly();
+        lastRiskAlerts = [];
+        if (safeStatus) {
+            safeStatus.style.display = 'none';
+            safeStatus.innerHTML = '';
+        }
+    }
+
+    function clearSafeRouteRiskLayersOnly() {
+        [SAFE_ROUTE_STROKE_LAYER_ID, SAFE_ROUTE_FILL_LAYER_ID].forEach(id => {
+            if (map.getLayer(id)) map.removeLayer(id);
+        });
+        if (map.getSource(SAFE_ROUTE_SOURCE_ID)) map.removeSource(SAFE_ROUTE_SOURCE_ID);
+    }
+
+    function getMostCommonType(alerts) {
+        const counts = new Map();
+        alerts.forEach(a => {
+            const key = a.alertTypeName || a.title || a.alertTypeSlug || '';
+            if (!key) return;
+            counts.set(key, (counts.get(key) || 0) + 1);
+        });
+        return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    }
+
+    function minDistanceToRouteMeters(point, coordinates) {
+        let min = Infinity;
+        for (let i = 0; i < coordinates.length - 1; i++) {
+            min = Math.min(min, distancePointToSegmentMeters(point, coordinates[i], coordinates[i + 1]));
+        }
+        return min;
+    }
+
+    function distancePointToSegmentMeters(point, start, end) {
+        const lat = point[1] * Math.PI / 180;
+        const metersPerLng = 111320 * Math.cos(lat);
+        const metersPerLat = 110540;
+        const px = point[0] * metersPerLng;
+        const py = point[1] * metersPerLat;
+        const ax = start[0] * metersPerLng;
+        const ay = start[1] * metersPerLat;
+        const bx = end[0] * metersPerLng;
+        const by = end[1] * metersPerLat;
+        const dx = bx - ax;
+        const dy = by - ay;
+        if (dx === 0 && dy === 0) return Math.hypot(px - ax, py - ay);
+        const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+        return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+    }
+
+    function metersToPixels(meters, latitude, zoom) {
+        const earthCircumference = 40075016.686;
+        const latitudeRadians = latitude * Math.PI / 180;
+        return meters / (earthCircumference * Math.cos(latitudeRadians) / Math.pow(2, zoom + 8));
     }
 
     function placeMarkers(s, e, sv, ev) {

@@ -92,20 +92,35 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Nút chuyển vệ tinh (Giao diện HTML ngoài) ──
     var isSatellite = false;
     const btnToggleSat = document.getElementById('btnToggleSatellite');
+    function setSatelliteMode(enabled) {
+        isSatellite = !!enabled;
+        var layer = map.getLayer('satellite-layer');
+        if (!layer) { console.warn('[SAT] Satellite layer not ready yet'); return false; }
+        map.setLayoutProperty('satellite-layer', 'visibility', isSatellite ? 'visible' : 'none');
+        if (btnToggleSat) btnToggleSat.classList.toggle('is-satellite', isSatellite);
+        const textEl = document.getElementById('layerToggleText');
+        if (textEl) textEl.textContent = isSatellite ? 'Bản đồ' : 'Vệ tinh';
+        document.dispatchEvent(new CustomEvent('map:satellitechange', { detail: { enabled: isSatellite } }));
+        return true;
+    }
+
+    function setBoundaryMode(enabled) {
+        const visibility = enabled ? 'visible' : 'none';
+        ['region-mask-fill', 'region-border'].forEach(id => {
+            if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visibility);
+        });
+    }
+
+    window.MapLayers = {
+        setSatellite: setSatelliteMode,
+        toggleSatellite: () => setSatelliteMode(!isSatellite),
+        isSatellite: () => isSatellite,
+        setBoundary: setBoundaryMode
+    };
+
     if (btnToggleSat) {
         btnToggleSat.addEventListener('click', function () {
-            isSatellite = !isSatellite;
-            var layer = map.getLayer('satellite-layer');
-            if (!layer) { console.warn('[SAT] Satellite layer not ready yet'); return; }
-            if (isSatellite) {
-                map.setLayoutProperty('satellite-layer', 'visibility', 'visible');
-                btnToggleSat.classList.add('is-satellite');
-                document.getElementById('layerToggleText').textContent = 'Bản đồ';
-            } else {
-                map.setLayoutProperty('satellite-layer', 'visibility', 'none');
-                btnToggleSat.classList.remove('is-satellite');
-                document.getElementById('layerToggleText').textContent = 'Vệ tinh';
-            }
+            setSatelliteMode(!isSatellite);
         });
     }
 
