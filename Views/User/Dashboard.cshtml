@@ -1,0 +1,411 @@
+@{
+    ViewData["Title"] = "Dashboard của tôi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+:root { --primary: #2563eb; --danger: #ef4444; --success: #10b981; --warning: #f59e0b; --slate: #64748b; }
+.ud-wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px; }
+.ud-hero { background: linear-gradient(135deg,#1e293b 0%,#0f172a 100%); border-radius: 20px; padding: 28px 32px; display: flex; align-items: center; gap: 20px; margin-bottom: 28px; color:#fff; }
+.ud-avatar { width:64px; height:64px; border-radius:50%; background:#2563eb; display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700; color:#fff; flex-shrink:0; }
+.ud-hero-info h2 { margin:0 0 4px; font-size:22px; font-weight:700; }
+.ud-hero-info p { margin:0; opacity:.7; font-size:14px; }
+.ud-rep { margin-top:10px; display:flex; align-items:center; gap:10px; }
+.ud-rep-label { font-size:12px; opacity:.6; text-transform:uppercase; letter-spacing:.5px; }
+.ud-rep-bar { flex:1; height:6px; background:rgba(255,255,255,.2); border-radius:10px; overflow:hidden; }
+.ud-rep-fill { height:100%; border-radius:10px; background:linear-gradient(90deg,#10b981,#34d399); transition:width .5s; }
+.ud-rep-score { font-weight:700; font-size:15px; }
+.ud-stats { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:28px; }
+@@media(max-width:900px){.ud-stats{grid-template-columns:repeat(2,1fr);}}
+.ud-stat { background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:18px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.ud-stat__n { font-size:28px; font-weight:800; color:#0f172a; }
+.ud-stat__l { font-size:12px; color:#64748b; margin-top:4px; }
+.ud-tabs { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.ud-tab { padding:8px 18px; border-radius:20px; border:1px solid #e2e8f0; background:#fff; font-size:13px; font-weight:500; color:#64748b; cursor:pointer; transition:all .2s; }
+.ud-tab.active { background:#2563eb; border-color:#2563eb; color:#fff; }
+.ud-card { background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+.ud-card-header { padding:16px 20px; border-bottom:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.ud-card-header h3 { margin:0; font-size:15px; font-weight:600; color:#0f172a; }
+.ud-report-list { min-height:200px; }
+.ud-report-item { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; border-bottom:1px solid #f8fafc; transition:background .15s; cursor:pointer; }
+.ud-report-item:last-child { border-bottom:none; }
+.ud-report-item:hover { background:#f8fafc; }
+.ud-type-icon { width:36px; height:36px; border-radius:8px; background:#f1f5f9; display:flex; align-items:center; justify-content:center; color:#64748b; flex-shrink:0; }
+.ud-type-icon svg { width:16px; height:16px; }
+.ud-report-body { flex:1; min-width:0; }
+.ud-report-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.ud-report-type { font-weight:600; font-size:14px; color:#0f172a; }
+.ud-report-desc { font-size:13px; color:#64748b; margin-top:2px; line-height:1.5; }
+.ud-report-meta { display:flex; gap:10px; align-items:center; margin-top:6px; font-size:12px; color:#94a3b8; flex-wrap:wrap; }
+.badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+.badge-pending { background:#fffbeb; color:#d97706; }
+.badge-approved { background:#f0fdf4; color:#15803d; }
+.badge-rejected { background:#fef2f2; color:#dc2626; }
+.badge-info { background:#eff6ff; color:#2563eb; }
+.badge-muted { background:#f1f5f9; color:#475569; }
+.ud-detail { margin-top:8px; padding:8px 12px; border-radius:10px; font-size:12px; line-height:1.5; }
+.ud-detail--info { background:#eff6ff; color:#1d4ed8; }
+.ud-detail--danger { background:#fef2f2; color:#b91c1c; }
+.ud-detail--muted { background:#f8fafc; color:#475569; }
+.ud-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.ud-btn-inline { border:none; border-radius:10px; padding:8px 12px; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; }
+.ud-btn-inline--primary { background:#2563eb; color:#fff; }
+.ud-btn-inline--primary:hover { background:#1d4ed8; }
+.ud-btn-inline--secondary { background:#fff; color:#334155; border:1px solid #cbd5e1; }
+.ud-btn-inline--secondary:hover { background:#f8fafc; }
+.ud-empty { text-align:center; padding:60px 20px; color:#94a3b8; }
+.ud-empty svg { width:48px; height:48px; margin-bottom:16px; opacity:.4; }
+.ud-report-btn { background:#2563eb; color:#fff; border:none; border-radius:10px; padding:10px 20px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .2s; }
+.ud-report-btn:hover { background:#1d4ed8; }
+.ud-loading { text-align:center; padding:40px; color:#94a3b8; }
+.ud-modal { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; padding:20px; z-index:2000; }
+.ud-modal__box { width:100%; max-width:420px; background:#fff; border-radius:16px; padding:24px; box-shadow:0 20px 50px rgba(15,23,42,.2); }
+.ud-modal__box h4 { margin:0 0 8px; font-size:18px; color:#0f172a; }
+.ud-modal__box p { margin:0; color:#64748b; font-size:13px; line-height:1.5; }
+.ud-modal__box textarea { width:100%; margin-top:16px; border:1px solid #cbd5e1; border-radius:12px; padding:12px 14px; font:inherit; resize:vertical; min-height:110px; }
+.ud-modal__actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+.ud-modal__btn { border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:600; cursor:pointer; }
+.ud-modal__btn--ghost { background:#fff; border:1px solid #cbd5e1; color:#475569; }
+.ud-modal__btn--primary { background:#2563eb; color:#fff; }
+</style>
+
+<div class="ud-wrap">
+  <div class="ud-hero">
+    <div class="ud-avatar" id="udAvatar">?</div>
+    <div class="ud-hero-info" style="flex:1">
+      <h2 id="udName">Người dùng</h2>
+      <p id="udEmail">—</p>
+      <div class="ud-rep">
+        <span class="ud-rep-label">Điểm uy tín</span>
+        <div class="ud-rep-bar"><div class="ud-rep-fill" id="udRepFill" style="width:50%"></div></div>
+        <span class="ud-rep-score" id="udRepScore">5/10</span>
+      </div>
+    </div>
+    <button class="ud-report-btn" onclick="openReport()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Báo cáo sự cố
+    </button>
+  </div>
+
+  <div class="ud-stats">
+    <div class="ud-stat"><div class="ud-stat__n" id="statTotal">—</div><div class="ud-stat__l">Tổng báo cáo</div></div>
+    <div class="ud-stat"><div class="ud-stat__n" style="color:#10b981" id="statApproved">—</div><div class="ud-stat__l">Đã xác thực</div></div>
+    <div class="ud-stat"><div class="ud-stat__n" style="color:#f59e0b" id="statPending">—</div><div class="ud-stat__l">Đang xử lý</div></div>
+    <div class="ud-stat"><div class="ud-stat__n" style="color:#3b82f6" id="statNeedsInfo">—</div><div class="ud-stat__l">Cần phản hồi</div></div>
+    <div class="ud-stat"><div class="ud-stat__n" style="color:#ef4444" id="statRejected">—</div><div class="ud-stat__l">Bị bác bỏ</div></div>
+  </div>
+
+  <div class="ud-card">
+    <div class="ud-card-header">
+      <h3>Báo cáo của tôi</h3>
+      <div class="ud-tabs">
+        <button class="ud-tab active" onclick="filterReports('all',this)">Tất cả</button>
+        <button class="ud-tab" onclick="filterReports('processing',this)">Đang xử lý</button>
+        <button class="ud-tab" onclick="filterReports('verified',this)">Đã xác thực</button>
+        <button class="ud-tab" onclick="filterReports('needsInfo',this)">Cần phản hồi</button>
+        <button class="ud-tab" onclick="filterReports('rejected',this)">Bị bác bỏ</button>
+      </div>
+    </div>
+    <div class="ud-report-list" id="udReportList">
+      <div class="ud-loading" id="udLoading">Đang tải dữ liệu...</div>
+    </div>
+  </div>
+</div>
+
+<div class="ud-modal" id="appealModal">
+  <div class="ud-modal__box">
+    <h4>Gửi khiếu nại</h4>
+    <p>Giải thích ngắn gọn vì sao báo cáo của bạn nên được xem xét lại. Admin sẽ kiểm tra trong vòng xử lý tiếp theo.</p>
+    <textarea id="appealReason" placeholder="Nhập lý do khiếu nại..."></textarea>
+    <div class="ud-modal__actions">
+      <button class="ud-modal__btn ud-modal__btn--ghost" onclick="closeAppealModal()">Hủy</button>
+      <button class="ud-modal__btn ud-modal__btn--primary" onclick="confirmAppeal()">Gửi khiếu nại</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICONS = {
+  theft_motorbike:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/><path d="M12 18h4l2-7h-4l-2 2h-4.5"/><path d="M11 13l-1.5-4h-2.5"/><path d="M14 11l1-5h3"/></svg>`,
+  pickpocket_robbery:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16v1a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m4 0h4a2 2 0 0 1 2 2v2m-6 0h4"/><rect x="8" y="9" width="8" height="8" rx="1"/><circle cx="12" cy="13" r="1"/></svg>`,
+  burglary:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  street_racing:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18M3 12h18M3 16h18"/><path d="M13 8l3-3 3 3m-6 4l3-3 3 3m-6 4l3-3 3 3"/></svg>`,
+  fighting_disorder:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`,
+  scam_tourist:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  overcharging:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  default:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+};
+
+const PROCESSING_STATUSES = ['PENDING_REVIEW', 'VISIBLE_UNVERIFIED'];
+const VERIFIED_STATUSES = ['VISIBLE_VERIFIED', 'RESOLVED'];
+const NEEDS_INFO_STATUSES = ['NEEDS_MORE_INFO', 'NOT_ENOUGH_EVIDENCE'];
+const REJECTED_STATUSES = ['REJECTED', 'EXPIRED'];
+
+let allReports = [];
+let appealAlertId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadUserInfo();
+  loadMyReports();
+});
+
+function loadUserInfo() {
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!u.fullName && !u.email) { window.location.href = '/Auth/Login'; return; }
+    document.getElementById('udAvatar').textContent = (u.fullName || u.email).charAt(0).toUpperCase();
+    document.getElementById('udName').textContent = u.fullName || 'Người dùng';
+    document.getElementById('udEmail').textContent = u.email || '';
+    const rep = u.reputationScore || 5;
+    document.getElementById('udRepScore').textContent = rep + '/10';
+    document.getElementById('udRepFill').style.width = (rep * 10) + '%';
+  } catch (_) {
+    window.location.href = '/Auth/Login';
+  }
+}
+
+async function loadMyReports() {
+  const token = localStorage.getItem('token');
+  if (!token) { renderNeedLogin(); return; }
+
+  try {
+    const res = await fetch('/api/alerts/my', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (res.status === 401) { renderNeedLogin(); return; }
+    if (!res.ok) throw new Error('Không thể tải dữ liệu');
+
+    allReports = await res.json();
+    updateStats();
+    renderList(allReports);
+  } catch (_) {
+    document.getElementById('udReportList').innerHTML = '<div class="ud-empty"><p style="color:#ef4444">Không thể tải dữ liệu.</p></div>';
+  }
+}
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = allReports.length;
+  document.getElementById('statApproved').textContent = allReports.filter(r => VERIFIED_STATUSES.includes(r.status)).length;
+  document.getElementById('statPending').textContent = allReports.filter(r => PROCESSING_STATUSES.includes(r.status)).length;
+  document.getElementById('statNeedsInfo').textContent = allReports.filter(r => NEEDS_INFO_STATUSES.includes(r.status)).length;
+  document.getElementById('statRejected').textContent = allReports.filter(r => REJECTED_STATUSES.includes(r.status)).length;
+}
+
+function filterReports(filter, btn) {
+  document.querySelectorAll('.ud-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+
+  const filtered = filter === 'all'
+    ? allReports
+    : allReports.filter(r => {
+        if (filter === 'processing') return PROCESSING_STATUSES.includes(r.status);
+        if (filter === 'verified') return VERIFIED_STATUSES.includes(r.status);
+        if (filter === 'needsInfo') return NEEDS_INFO_STATUSES.includes(r.status);
+        if (filter === 'rejected') return REJECTED_STATUSES.includes(r.status);
+        return true;
+      });
+
+  renderList(filtered);
+}
+
+function renderList(items) {
+  const el = document.getElementById('udReportList');
+  if (!items.length) {
+    el.innerHTML = `<div class="ud-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Không có báo cáo nào</p></div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(r => {
+    const icon = ICONS[r.alertTypeSlug] || ICONS.default;
+    const status = getStatusMeta(r.status);
+    const createdAt = new Date(r.createdAt);
+    const dateStr = createdAt.toLocaleDateString('vi-VN') + ' ' + createdAt.toLocaleTimeString('vi-VN', { hour:'2-digit', minute:'2-digit' });
+    const details = buildDetails(r);
+    const actions = buildActions(r);
+
+    return `<div class="ud-report-item" onclick="flyToReport(${r.longitude || 0}, ${r.latitude || 0})">
+      <div class="ud-type-icon">${icon}</div>
+      <div class="ud-report-body">
+        <div class="ud-report-head">
+          <div class="ud-report-type">${esc(r.alertTypeName || 'Sự cố')}</div>
+          ${status}
+        </div>
+        <div class="ud-report-desc">${esc(r.description || 'Không có mô tả')}</div>
+        <div class="ud-report-meta">
+          <span>${dateStr}</span>
+          ${r.addressText ? `<span>Vị trí: ${esc(r.addressText)}</span>` : ''}
+          <span>Xác nhận: ${r.confirmCount || 0} / Phủ nhận: ${r.denyCount || 0}</span>
+        </div>
+        ${details}
+        ${actions}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function getStatusMeta(status) {
+  switch (status) {
+    case 'VISIBLE_UNVERIFIED':
+      return '<span class="badge badge-info">Chưa xác thực</span>';
+    case 'VISIBLE_VERIFIED':
+      return '<span class="badge badge-approved">Đã xác thực</span>';
+    case 'PENDING_REVIEW':
+      return '<span class="badge badge-pending">Chờ kiểm duyệt</span>';
+    case 'NEEDS_MORE_INFO':
+      return '<span class="badge badge-info">Cần bổ sung</span>';
+    case 'NOT_ENOUGH_EVIDENCE':
+      return '<span class="badge badge-muted">Không đủ cơ sở</span>';
+    case 'REJECTED':
+      return '<span class="badge badge-rejected">Bị bác bỏ</span>';
+    case 'RESOLVED':
+      return '<span class="badge badge-approved">Đã xử lý</span>';
+    case 'EXPIRED':
+      return '<span class="badge badge-muted">Hết hạn</span>';
+    default:
+      return `<span class="badge badge-muted">${esc(status || 'Không rõ')}</span>`;
+  }
+}
+
+function buildDetails(report) {
+  const blocks = [];
+
+  if (report.status === 'VISIBLE_UNVERIFIED') {
+    blocks.push('<div class="ud-detail ud-detail--info">Báo cáo đang hiển thị công khai ở trạng thái Chưa xác thực và vẫn có thể được cộng đồng hoặc admin xem xét thêm.</div>');
+  }
+
+  if (report.status === 'NEEDS_MORE_INFO') {
+    if (report.moreInfoDeadline) {
+      const deadline = new Date(report.moreInfoDeadline).toLocaleString('vi-VN');
+      blocks.push(`<div class="ud-detail ud-detail--info"><strong>Cần bổ sung bằng chứng.</strong> Hạn phản hồi: ${deadline}.</div>`);
+    } else {
+      blocks.push('<div class="ud-detail ud-detail--info"><strong>Cần bổ sung bằng chứng.</strong> Báo cáo hiện chưa có hạn tự ẩn sau 24 giờ.</div>');
+    }
+  }
+
+  if (report.status === 'NOT_ENOUGH_EVIDENCE') {
+    blocks.push('<div class="ud-detail ud-detail--muted">Báo cáo hiện bị ẩn vì chưa đủ cơ sở để hiển thị công khai.</div>');
+  }
+
+  if (report.moderationReason) {
+    const cssClass = report.status === 'REJECTED' ? 'ud-detail--danger' : 'ud-detail--muted';
+    blocks.push(`<div class="ud-detail ${cssClass}"><strong>Ghi chú moderation:</strong> ${esc(report.moderationReason)}</div>`);
+  }
+
+  if (report.filterReason) {
+    blocks.push(`<div class="ud-detail ud-detail--muted"><strong>Bộ lọc hệ thống:</strong> ${esc(report.filterReason)}</div>`);
+  }
+
+  if (report.appealStatus) {
+    const reviewNote = report.appealReviewNote ? `<div style="margin-top:4px"><strong>Ghi chú review:</strong> ${esc(report.appealReviewNote)}</div>` : '';
+    blocks.push(`<div class="ud-detail ud-detail--info"><strong>Trạng thái khiếu nại:</strong> ${esc(report.appealStatus)}${reviewNote}</div>`);
+  }
+
+  return blocks.join('');
+}
+
+function buildActions(report) {
+  const buttons = [];
+
+  if (report.canAppeal) {
+    buttons.push(`<button class="ud-btn-inline ud-btn-inline--primary" onclick="openAppealModal(${report.id}, event)">Gửi khiếu nại</button>`);
+  }
+
+  if (report.mediaUrls && report.mediaUrls.length > 0) {
+    buttons.push(`<button class="ud-btn-inline ud-btn-inline--secondary" onclick="openFirstMedia('${escJs(report.mediaUrls[0])}', event)">Xem bằng chứng</button>`);
+  }
+
+  if (!buttons.length) return '';
+  return `<div class="ud-actions">${buttons.join('')}</div>`;
+}
+
+function openAppealModal(alertId, event) {
+  if (event) event.stopPropagation();
+  appealAlertId = alertId;
+  document.getElementById('appealReason').value = '';
+  document.getElementById('appealModal').style.display = 'flex';
+  document.getElementById('appealReason').focus();
+}
+
+function closeAppealModal() {
+  appealAlertId = null;
+  document.getElementById('appealModal').style.display = 'none';
+}
+
+async function confirmAppeal() {
+  const token = localStorage.getItem('token');
+  const reason = document.getElementById('appealReason').value.trim();
+  if (!appealAlertId || !token) return;
+  if (!reason) {
+    showToast('Vui lòng nhập lý do khiếu nại.', 'error');
+    return;
+  }
+
+  const res = await fetch(`/api/alerts/${appealAlertId}/appeal`, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ reason })
+  });
+
+  const data = await readJson(res);
+  if (!res.ok || !data.success) {
+    showToast(data.message || 'Không thể gửi khiếu nại.', 'error');
+    return;
+  }
+
+  closeAppealModal();
+  showToast(data.message || 'Đã gửi khiếu nại.', 'success');
+  await loadMyReports();
+}
+
+function flyToReport(lng, lat) {
+  if (lng && lat) {
+    sessionStorage.setItem('flyTo', JSON.stringify({ lng, lat }));
+    window.location.href = '/Map';
+  }
+}
+
+function openFirstMedia(url, event) {
+  if (event) event.stopPropagation();
+  window.open(url, '_blank');
+}
+
+function openReport() {
+  window.location.href = '/Map?openReport=1';
+}
+
+function renderNeedLogin() {
+  document.getElementById('udReportList').innerHTML = `<div class="ud-empty"><p>Bạn cần <a href="/Auth/Login" style="color:#2563eb">đăng nhập</a> để xem báo cáo.</p></div>`;
+}
+
+function showToast(message, type) {
+  const colors = { success: '#10b981', error: '#ef4444' };
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:3000;padding:12px 20px;border-radius:12px;background:${colors[type] || '#334155'};color:#fff;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(15,23,42,.18);`;
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+async function readJson(res) {
+  try {
+    return await res.json();
+  } catch (_) {
+    return {};
+  }
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function escJs(s) {
+  if (!s) return '';
+  return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+document.getElementById('appealModal').addEventListener('click', function (e) {
+  if (e.target === this) closeAppealModal();
+});
+</script>

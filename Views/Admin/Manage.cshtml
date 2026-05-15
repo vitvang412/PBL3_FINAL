@@ -1,0 +1,447 @@
+@model List<DaNangSafeMap.Models.Entities.Article>
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Quản lý bài viết";
+
+    var status = ViewBag.Status as string ?? "all";
+    var query = ViewBag.Query as string ?? "";
+    var catId = ViewBag.CategoryId as int?;
+    var page = (int)(ViewBag.CurrentPage ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 20);
+    var total = (int)(ViewBag.Total ?? 0);
+    var cAll = (int)(ViewBag.CountAll ?? 0);
+    var cPub = (int)(ViewBag.CountPublished ?? 0);
+    var cDraft = (int)(ViewBag.CountDraft ?? 0);
+    var cTrash = (int)(ViewBag.CountTrash ?? 0);
+    var cats = ViewBag.Categories as List<DaNangSafeMap.Models.Entities.Category> ?? new();
+    var msg = TempData["AdminMsg"] as string;
+
+    string TabHref(string s) => $"/Article/Manage?status={s}{(string.IsNullOrEmpty(query) ? "" : "&q=" + Uri.EscapeDataString(query))}{(catId.HasValue ? "&categoryId=" + catId : "")}";
+    var totalPages = (int)Math.Ceiling((double)total / pageSize);
+    if (totalPages < 1) totalPages = 1;
+
+    bool isTrashView = status == "trash";
+}
+
+<style>
+.mn-layout { display: flex; height: calc(100vh - 70px); background: #fff; font-family: 'Be Vietnam Pro', sans-serif; }
+/* LEFT SUB-NAV */
+.mn-subnav { width: 220px; flex-shrink: 0; background: #FAFAFA; border-right: 1px solid #E5E7EB; padding: 20px 0; overflow-y: auto; }
+.mn-subnav__section { margin-bottom: 8px; }
+.mn-subnav__title { font-size: 11px; font-weight: 800; color: #9CA3AF; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 20px 4px; }
+.mn-subnav__item { display: flex; align-items: center; gap: 8px; padding: 9px 20px; font-size: 13px; font-weight: 500; color: #374151; text-decoration: none; border-left: 3px solid transparent; transition: 0.15s; }
+.mn-subnav__item:hover { background: #F0FDF4; color: #064E3B; }
+.mn-subnav__item.active { background: #ECFDF5; color: #064E3B; font-weight: 700; border-left-color: #064E3B; }
+.mn-subnav__item .badge { margin-left: auto; background: #FEF3C7; color: #92400E; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 20px; }
+.mn-subnav__item .badge-danger { background: #FEE2E2; color: #991B1B; }
+/* MAIN CONTENT */
+.mn-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+</style>
+
+<div class="mn-layout">
+
+    <!-- SUB-NAV SIDEBAR -->
+    <nav class="mn-subnav">
+        <div class="mn-subnav__section">
+            <div class="mn-subnav__title">Quản lý tin tức</div>
+            <a href="/Article/Manage" class="mn-subnav__item @(status == "all" ? "active" : "")">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Tất cả bài viết
+                @if (cAll > 0) { <span class="badge">@cAll</span> }
+            </a>
+            <a href="/Article/Manage?status=published" class="mn-subnav__item @(status == "published" ? "active" : "")">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Đã xuất bản
+                @if (cPub > 0) { <span class="badge">@cPub</span> }
+            </a>
+            <a href="/Article/Manage?status=draft" class="mn-subnav__item @(status == "draft" ? "active" : "")">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Chờ duyệt
+                @if (cDraft > 0) { <span class="badge badge-danger">@cDraft</span> }
+            </a>
+            <a href="/Article/Manage?status=trash" class="mn-subnav__item @(status == "trash" ? "active" : "")">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                Thùng rác
+                @if (cTrash > 0) { <span class="badge">@cTrash</span> }
+            </a>
+        </div>
+        <div class="mn-subnav__section">
+            <div class="mn-subnav__title">Tạo mới</div>
+            <a href="/Article/Create" class="mn-subnav__item">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Viết bài mới
+            </a>
+        </div>
+    </nav>
+
+    <!-- MAIN TABLE AREA -->
+    <div class="mn-main">
+<div class="sm-manage-wrapper">
+
+    @* ── STICKY NAV BLOCK ── *@
+    <div class="sm-sticky-nav">
+        <div class="sm-toolbar" id="smToolbar">
+            @* MODE: DEFAULT *@
+            <div class="sm-toolbar__default" id="toolbarDefault">
+                <div class="sm-tabs">
+                    <a href="@TabHref("all")" class="sm-tab @(status == "all" ? "active" : "")">Tất cả (@cAll)</a>
+                    <a href="@TabHref("published")" class="sm-tab @(status == "published" ? "active" : "")">Đã xuất bản (@cPub)</a>
+                    <a href="@TabHref("draft")" class="sm-tab @(status == "draft" ? "active" : "")">Chờ duyệt (@cDraft)</a>
+                    <a href="@TabHref("trash")" class="sm-tab @(status == "trash" ? "active" : "")">Thùng rác (@cTrash)</a>
+                </div>
+                <div class="sm-toolbar__right">
+                    <form method="get" action="/Article/Manage" class="sm-filter-form">
+                        <input type="hidden" name="status" value="@status" />
+                        <select name="categoryId" class="sm-select" onchange="this.form.submit()">
+                            <option value="">Chuyên mục</option>
+                            @foreach (var c in cats) { <option value="@c.Id" selected="@(catId == c.Id)">@c.Name</option> }
+                        </select>
+                    </form>
+                    <form method="get" action="/Article/Manage" class="sm-search-form">
+                        <input type="hidden" name="status" value="@status" />
+                        <div class="sm-search-wrap">
+                            <input type="search" name="q" value="@query" placeholder="Tìm bài viết..." />
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @* MODE: SELECTION *@
+            <div class="sm-toolbar__selection" id="toolbarSelection" style="display:none">
+                <div class="sm-selection-left">
+                    <button type="button" class="sm-btn-clear" onclick="clearSelection()"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+                    <span class="sm-selection-count"><span id="selectionCount">0</span> mục đã chọn</span>
+                </div>
+                <div class="sm-selection-actions">
+                    @if (isTrashView) {
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-success" onclick="submitBulk('restore')" title="Phục hồi"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-danger" onclick="submitBulk('permdelete')" title="Xóa vĩnh viễn"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    } else {
+                        <button type="button" class="sm-action-btn sm-action-btn--toolbar sm-text-danger" onclick="submitBulk('trash')" title="Bỏ vào thùng rác"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* TABLE HEADER JOINED WITH TOOLBAR *@
+        <div class="sm-table-header-wrap">
+            <table class="sm-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; padding-left: 24px;"><input type="checkbox" id="selAll" /></th>
+                        <th style="width: 35%;">Tiêu đề</th>
+                        <th style="width: 15%;">Tác giả</th>
+                        <th style="width: 12%;">Chuyên mục</th>
+                        <th style="width: 13%;">Trạng thái</th>
+                        <th style="width: 8%;">Lượt xem</th>
+                        <th style="width: 10%;">Thời gian</th>
+                        <th style="width: 150px; text-align: right; padding-right: 24px;">Hành động</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    @* ── DATA TABLE CONTENT ── *@
+    <div class="sm-content-scroll">
+        <form method="post" action="/Article/BulkAction" id="bulkForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnStatus" value="@status" /><input type="hidden" name="action" id="bulkActionInput" />
+            
+            <table class="sm-table sm-table-body">
+                <tbody>
+                    @if (!Model.Any()) { <tr><td colspan="8" class="sm-empty">Không tìm thấy bài viết nào.</td></tr> }
+                    @foreach (var a in Model)
+                    {
+                        <tr class="sm-row-hoverable">
+                            <td style="width: 50px; padding-left: 24px;"><input type="checkbox" name="ids" value="@a.Id" class="row-cb" onchange="updateSelectionUI()" /></td>
+                            <td style="width: 35%;">
+                                <div class="sm-title-cell">
+                                    <a href="/Article/Preview/@a.Id" class="sm-article-link" title="Xem trước bài viết">@a.Title</a>
+                                </div>
+                            </td>
+                            <td style="width: 15%;"><span class="sm-author">@(a.Author?.FullName ?? "—")</span></td>
+                            <td style="width: 12%;">
+                                @{ var catClass = a.CategoryId switch { 1 => "sm-cat--security", 2 => "sm-cat--life", _ => "sm-cat--default" }; }
+                                <span class="sm-cat @catClass">@(a.Category?.Name ?? "Chưa rõ")</span>
+                            </td>
+                            <td style="width: 13%;">
+                                @if (a.Status == 2) { <span class="sm-status sm-status--pub"><span class="sm-dot"></span> Đã xuất bản</span> }
+                                else if (a.Status == 1) { <span class="sm-status sm-status--draft"><span class="sm-dot"></span> Chờ duyệt</span> }
+                                else { <span class="sm-status sm-status--rej"><span class="sm-dot"></span> Bị từ chối</span> }
+                            </td>
+                            <td style="width: 8%;"><span class="sm-views">@((a.ViewCount ?? 0).ToString("N0"))</span></td>
+                            <td style="width: 10%;">
+                                <div class="sm-time-cell">
+                                    <span class="sm-time">@(a.CreatedAt?.ToString("HH:mm") ?? "—")</span>
+                                    <span class="sm-date">@(a.CreatedAt?.ToString("dd/MM/yyyy") ?? "—")</span>
+                                </div>
+                            </td>
+                            <td style="width: 150px; text-align: right; padding-right: 24px;">
+                                <div class="sm-actions">
+                                    @if (!isTrashView)
+                                    {
+                                        if (a.Status == 1 || a.Status == 3) {
+                                            <button type="button" class="sm-action-btn sm-text-success" onclick="wpApprove(@a.Id)" title="Duyệt bài">
+                                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                            </button>
+                                        }
+                                        if (a.Status == 1) {
+                                            <button type="button" class="sm-action-btn sm-text-danger" onclick="wpReject(@a.Id)" title="Từ chối">
+                                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        }
+                                        <button type="button" class="sm-action-btn sm-action-btn--star @(a.IsFeatured == true ? "active" : "")" onclick="wpToggleFeatured(@a.Id)" title="Nổi bật">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                        </button>
+                                        <button type="button" class="sm-action-btn sm-action-btn--focus @(a.IsFocus == true ? "active" : "")" onclick="wpToggleFocus(@a.Id)" title="Tiêu điểm">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                                        </button>
+                                        <button type="button" class="sm-action-btn sm-action-btn--event @(a.IsEvent == true ? "active" : "")" onclick="wpToggleEvent(@a.Id)" title="Sự kiện">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                        </button>
+                                        <a href="/Article/Edit/@a.Id" class="sm-action-btn sm-action-btn--edit" title="Chỉnh sửa">
+                                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="sm-action-btn sm-text-success" onclick="wpRestore(@a.Id)" title="Phục hồi"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
+                                        <button type="button" class="sm-action-btn sm-text-danger" onclick="wpPermDelete(@a.Id)" title="Xóa vĩnh viễn"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </form>
+
+        @* ── PAGINATION ── *@
+        <div class="sm-footer">
+            <div class="sm-info">Hiển thị @Model.Count trên @total bài viết</div>
+            @if (totalPages > 1) {
+                <div class="sm-pager">
+                    <a href="?status=@status&q=@query&page=@(page-1)" class="sm-pager-btn @(page <= 1 ? "disabled" : "")">&lt;</a>
+                    @for (int p = 1; p <= totalPages; p++) {
+                        if (p == 1 || p == totalPages || (p >= page - 1 && p <= page + 1)) { <a href="?status=@status&q=@query&page=@p" class="sm-pager-btn @(p == page ? "active" : "")">@p</a> }
+                        else if (p == 2 || p == totalPages - 1) { <span class="sm-pager-dots">...</span> }
+                    }
+                    <a href="?status=@status&q=@query&page=@(page+1)" class="sm-pager-btn @(page >= totalPages ? "disabled" : "")">&gt;</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+</div>
+</div>
+@* ── FLASH MESSAGE (Bottom Left) ── *@
+@if (!string.IsNullOrEmpty(msg))
+{
+    <div class="sm-toast" id="smToast">
+        <div class="sm-toast__icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+        <div class="sm-toast__content">@msg</div>
+        <button class="sm-toast__close" onclick="this.parentElement.style.display='none'">×</button>
+    </div>
+}
+
+@* ── HIDDEN FORMS ── *@
+<form method="post" action="/Article/ToggleFeatured" id="featForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="featId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/ToggleFocus" id="focusForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="focusId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/ToggleEvent" id="eventForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="id" id="eventId" /><input type="hidden" name="returnStatus" value="@status" /></form>
+<form method="post" action="/Article/BulkAction" id="singleActionForm" style="display:none;">@Html.AntiForgeryToken()<input type="hidden" name="ids" id="singleId" /><input type="hidden" name="action" id="singleAction" /><input type="hidden" name="returnStatus" value="@status" /></form>
+
+<style>
+:root {
+    --sm-primary: #064E3B;
+    --sm-text: #1F2937;
+    --sm-text-muted: #6B7280;
+    --sm-border: #E5E7EB;
+    --sm-bg: #F9FAFB;
+}
+
+/* Base Wrapper */
+.main-content:has(.sm-manage-wrapper) { padding: 0 !important; background: #fff; }
+.sm-manage-wrapper { font-family: 'Be Vietnam Pro', sans-serif; background: #fff; height: calc(100vh - 70px); overflow-y: auto; display: flex; flex-direction: column; }
+
+/* Sticky Nav Block */
+.sm-sticky-nav {
+    position: sticky; top: 0; z-index: 1000;
+    background: #fff;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.sm-toolbar { height: 64px; padding: 0 24px; display: flex; align-items: center; border-bottom: 1px solid var(--sm-border); }
+.sm-toolbar__default, .sm-toolbar__selection { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+
+/* Tabs */
+.sm-tabs { display: flex; gap: 32px; height: 100%; }
+.sm-tab { font-weight: 600; font-size: 14px; color: var(--sm-text-muted); text-decoration: none; display: flex; align-items: center; border-bottom: 3px solid transparent; transition: 0.2s; }
+.sm-tab:hover { color: var(--sm-primary); }
+.sm-tab.active { color: var(--sm-primary); border-bottom-color: var(--sm-primary); }
+
+.sm-toolbar__right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.sm-select { height: 38px; padding: 0 12px; border: 1px solid var(--sm-border); border-radius: 8px; font-size: 13px; outline: none; background: var(--sm-bg); }
+.sm-search-wrap { position: relative; width: 280px; }
+.sm-search-wrap input { width: 100%; height: 38px; padding: 0 40px 0 16px; border: 1px solid var(--sm-border); border-radius: 8px; font-size: 13px; outline: none; background: var(--sm-bg); }
+.sm-search-wrap svg { position: absolute; right: 12px; top: 11px; color: var(--sm-text-muted); }
+
+/* Selection Mode */
+.sm-selection-left { display: flex; align-items: center; gap: 12px; }
+.sm-selection-count { font-weight: 700; color: var(--sm-primary); font-size: 15px; }
+.sm-btn-clear { background: none; border: none; padding: 8px; border-radius: 50%; cursor: pointer; color: var(--sm-text-muted); display: flex; }
+.sm-btn-clear:hover { background: #F3F4F6; color: #EF4444; }
+
+/* Table Header Joined */
+.sm-table-header-wrap { background: var(--sm-bg); border-bottom: 1px solid var(--sm-border); }
+.sm-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.sm-table thead th { padding: 14px 0; text-align: left; font-size: 12px; font-weight: 700; color: var(--sm-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Table Content */
+.sm-content-scroll { flex: 1; padding-bottom: 40px; }
+.sm-table tbody td { padding: 16px 0; border-bottom: 1px solid var(--sm-border); vertical-align: middle; }
+.sm-row-hoverable:hover { background: #F8FAFC; }
+.sm-row-hoverable.selected { background: #F0FDF4; }
+
+/* Title Colors Fix (No Blue) */
+.sm-title-cell { display: flex; flex-direction: column; gap: 4px; padding-right: 15px; }
+.sm-article-link { font-weight: 700; font-size: 14px; color: #111827; text-decoration: none; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sm-article-link:hover { color: var(--sm-primary); text-decoration: underline; }
+.sm-id { font-size: 11px; color: var(--sm-text-muted); }
+
+.sm-author { font-size: 13px; font-weight: 500; color: var(--sm-text); }
+.sm-cat { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+.sm-cat--security { background: #ECFDF5; color: #059669; }
+.sm-cat--life { background: #EFF6FF; color: #2563EB; }
+.sm-cat--default { background: #F3F4F6; color: #4B5563; }
+
+.sm-status { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.sm-dot { width: 8px; height: 8px; border-radius: 50%; }
+.sm-status--pub { color: #059669; } .sm-status--pub .sm-dot { background: #10B981; }
+.sm-status--draft { color: #D97706; } .sm-status--draft .sm-dot { background: #F59E0B; }
+.sm-status--rej { color: #DC2626; } .sm-status--rej .sm-dot { background: #EF4444; }
+
+.sm-views { font-weight: 600; font-size: 13px; color: var(--sm-text); }
+.sm-time-cell { display: flex; flex-direction: column; font-size: 12px; }
+.sm-time { font-weight: 700; color: var(--sm-text); }
+.sm-date { color: var(--sm-text-muted); }
+
+/* Horizontal Actions */
+.sm-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.sm-action-btn { width: 36px; height: 36px; border: 1px solid var(--sm-border); border-radius: 8px; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #9CA3AF; }
+.sm-action-btn svg { fill: none !important; }
+
+.sm-action-btn--star.active { color: #F59E0B; border-color: #FDE68A; background: #FFFBEB; }
+.sm-action-btn--star.active svg { fill: #F59E0B !important; }
+.sm-action-btn--focus { color: #60A5FA; }
+.sm-action-btn--focus.active { color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; }
+.sm-action-btn--event { color: #A78BFA; }
+.sm-action-btn--event.active { color: #7C3AED; border-color: #DDD6FE; background: #F5F3FF; }
+.sm-action-btn--edit:hover { color: #10B981; border-color: #6EE7B7; background: #ECFDF5; }
+.sm-action-btn--toolbar { border-radius: 50%; width: 40px; height: 40px; }
+.sm-text-success { color: #10B981 !important; }
+.sm-text-danger { color: #EF4444 !important; }
+
+/* Toast Notification (Bottom Left) */
+.sm-toast {
+    position: fixed; bottom: 30px; left: 30px;
+    background: #1F2937; color: #fff; padding: 14px 24px; border-radius: 12px;
+    display: flex; align-items: center; gap: 12px; z-index: 9999;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease;
+}
+@@keyframes slideUp { from { bottom: 10px; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+.sm-toast__icon { color: #10B981; display: flex; }
+.sm-toast__content { font-size: 14px; font-weight: 500; }
+.sm-toast__close { background: none; border: none; color: #9CA3AF; font-size: 20px; cursor: pointer; margin-left: auto; padding-left: 10px; }
+
+/* Footer */
+.sm-footer { padding: 24px 30px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--sm-border); margin-top: auto; }
+.sm-info { font-size: 13px; color: var(--sm-text-muted); font-weight: 500; }
+.sm-pager { display: flex; gap: 6px; }
+.sm-pager-btn { min-width: 36px; height: 36px; border: 1px solid var(--sm-border); border-radius: 8px; display: flex; align-items: center; justify-content: center; text-decoration: none; color: var(--sm-text); font-size: 14px; font-weight: 600; transition: 0.2s; }
+.sm-pager-btn:hover:not(.disabled) { border-color: var(--sm-primary); color: var(--sm-primary); }
+.sm-pager-btn.active { background: var(--sm-primary); color: #fff; border-color: var(--sm-primary); }
+.sm-pager-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+.sm-pager-dots { display: flex; align-items: center; padding: 0 4px; color: var(--sm-text-muted); }
+.sm-empty { padding: 40px; text-align: center; color: var(--sm-text-muted); font-size: 14px; }
+</style>
+
+<script>
+function updateSelectionUI() {
+    const cbs = document.querySelectorAll('.row-cb:checked');
+    const toolbar = document.getElementById('smToolbar');
+    const def = document.getElementById('toolbarDefault');
+    const sel = document.getElementById('toolbarSelection');
+    const count = document.getElementById('selectionCount');
+    if (cbs.length > 0) {
+        def.style.display = 'none'; sel.style.display = 'flex';
+        count.textContent = cbs.length;
+        toolbar.style.background = '#F0FDF4';
+    } else {
+        def.style.display = 'flex'; sel.style.display = 'none';
+        toolbar.style.background = '#fff';
+    }
+    document.querySelectorAll('.row-cb').forEach(cb => { cb.closest('tr').classList.toggle('selected', cb.checked); });
+}
+function clearSelection() {
+    document.querySelectorAll('.row-cb').forEach(cb => cb.checked = false);
+    document.getElementById('selAll').checked = false; updateSelectionUI();
+}
+function submitBulk(action) {
+    if (action === 'permdelete' && !confirm('Xóa vĩnh viễn?')) return;
+    document.getElementById('bulkActionInput').value = action; document.getElementById('bulkForm').submit();
+}
+function wpToggleFeatured(id) { document.getElementById('featId').value = id; document.getElementById('featForm').submit(); }
+function wpToggleFocus(id) { document.getElementById('focusId').value = id; document.getElementById('focusForm').submit(); }
+function wpToggleEvent(id) { document.getElementById('eventId').value = id; document.getElementById('eventForm').submit(); }
+function wpRestore(id) { _singleAction(id, 'restore'); }
+function wpPermDelete(id) { _singleAction(id, 'permdelete', 'Xóa vĩnh viễn?'); }
+function _singleAction(id, action, msg) {
+    if (msg && !confirm(msg)) return;
+    document.getElementById('singleId').value = id; document.getElementById('singleAction').value = action;
+    document.getElementById('singleActionForm').submit();
+}
+
+function wpApprove(id) {
+    if (!confirm('Bạn có chắc chắn muốn duyệt bài viết này?')) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    const fd = new FormData();
+    fd.append('__RequestVerificationToken', token);
+    fetch('/Article/Approve/' + id, {
+        method: 'POST',
+        body: fd
+    }).then(res => {
+        if(res.ok) location.reload();
+        else alert('Có lỗi xảy ra khi duyệt bài');
+    });
+}
+
+function wpReject(id) {
+    const reason = prompt('Nhập lý do từ chối:');
+    if (!reason) return;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    // We send reason via query string / form data instead of JSON to bypass header antiforgery configuration issues.
+    // Wait, the backend requires [FromBody] RejectRequest req. So we MUST send JSON.
+    fetch('/Article/Reject/' + id, {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token 
+        },
+        body: JSON.stringify({ reason: reason })
+    }).then(res => {
+        if(res.ok) location.reload();
+        else alert('Có lỗi xảy ra khi từ chối bài (Kiểm tra AntiForgeryToken)');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const selAll = document.getElementById('selAll');
+    if (selAll) selAll.addEventListener('change', function() {
+        document.querySelectorAll('.row-cb').forEach(cb => cb.checked = this.checked); updateSelectionUI();
+    });
+    const toast = document.getElementById('smToast');
+    if (toast) setTimeout(() => toast.style.display = 'none', 5000);
+});
+</script>

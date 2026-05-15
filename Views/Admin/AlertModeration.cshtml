@@ -1,0 +1,901 @@
+@{
+    ViewData["Title"] = "Duyệt Báo Cáo Sự Cố";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="admin-alerts-page">
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h4 class="fw-bold mb-1">Duyệt Báo Cáo Sự Cố</h4>
+            <p class="text-muted mb-0">Kiểm tra và phê duyệt các báo cáo từ cộng đồng</p>
+        </div>
+        <div class="header-controls">
+            <div class="header-actions">
+                <button class="btn-tab active" data-status="PENDING" onclick="switchTab(this)">
+                    Cần kiểm duyệt
+                    <span class="badge-count" id="pendingCount">...</span>
+                </button>
+                <button class="btn-tab" data-status="" onclick="switchTab(this)">
+                    Tất cả
+                </button>
+                <button class="btn-tab" data-status="VISIBLE_VERIFIED" onclick="switchTab(this)">
+                    Đã xác thực
+                </button>
+                <button class="btn-tab" data-status="REJECTED" onclick="switchTab(this)">
+                    Bị bác bỏ
+                </button>
+                <button class="btn-tab" data-status="REPORTS" onclick="switchTab(this)">
+                    Báo cáo vi phạm
+                </button>
+            </div>
+            <button type="button" id="needsMoreInfoToggle" class="btn-toggle-auto-hide" onclick="toggleNeedsMoreInfoAutoHide()">
+                Tự ẩn sau 24h: Đang tải...
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert list -->
+    <div id="alertsList" class="alerts-grid">
+        <div class="loading-state">
+            <div class="spinner"></div>
+            <span>Đang tải...</span>
+        </div>
+    </div>
+
+    <!-- Phân trang -->
+    <div id="pagination" class="pagination-bar" style="display:none"></div>
+</div>
+
+<div id="actionModal" class="modal-overlay" style="display:none">
+    <div class="modal-box">
+        <h5 id="actionModalTitle">Xử lý báo cáo</h5>
+        <p class="text-muted" id="actionModalDescription">Nhập ghi chú cho quyết định này.</p>
+        <textarea id="actionModalReason" rows="3" placeholder="Nhập lý do hoặc ghi chú..."></textarea>
+        <div class="modal-actions">
+            <button onclick="closeActionModal()" class="btn-cancel">Hủy</button>
+            <button onclick="confirmActionModal()" class="btn-confirm-reject" id="actionModalConfirm">Xác nhận</button>
+        </div>
+    </div>
+</div>
+
+<style>
+@@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@@400;500;600;700;800&display=swap');
+
+:root {
+    --primary: #10B981;
+    --primary-hover: #059669;
+    --danger: #EF4444;
+    --danger-hover: #DC2626;
+    --warning: #F59E0B;
+    --bg-page: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --text-main: #0F172A;
+    --text-muted: #64748B;
+    --border-color: #E2E8F0;
+    --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-page);
+}
+
+.admin-alerts-page { 
+    padding: 24px; 
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.page-header h4 {
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    color: var(--text-main);
+    background: linear-gradient(135deg, #0F172A 0%, #334155 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    background: #fff;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+}
+
+.btn-toggle-auto-hide {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-toggle-auto-hide.is-enabled {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.btn-toggle-auto-hide.is-disabled {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
+.btn-tab {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    font-family: inherit;
+}
+
+.btn-tab:hover {
+    color: var(--text-main);
+    background: #F1F5F9;
+}
+
+.btn-tab.active {
+    background: var(--text-main);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.badge-count {
+    background: rgba(255,255,255,0.2);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+}
+
+.btn-tab:not(.active) .badge-count {
+    background: #FEE2E2;
+    color: #EF4444;
+}
+
+.alerts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.alert-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items: start;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.alert-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: #CBD5E1;
+    border-radius: 4px 0 0 4px;
+    transition: background 0.3s;
+}
+
+.alert-card:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.08),
+                0 4px 8px -4px rgba(15, 23, 42, 0.04); 
+    border-color: #CBD5E1;
+}
+
+.alert-card__badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 24px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.badge-pending { background: #FFFBEB; color: #B45309; border: 1px solid #FEF3C7; }
+.badge-approved { background: #ECFDF5; color: #047857; border: 1px solid #D1FAE5; }
+.badge-rejected { background: #FEF2F2; color: #B91C1C; border: 1px solid #FEE2E2; }
+.badge-verified { background: #EFF6FF; color: #1D4ED8; border: 1px solid #DBEAFE; }
+
+.alert-card__title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0 0 8px;
+    line-height: 1.4;
+}
+
+.alert-card__meta {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.alert-card__meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.alert-card__desc {
+    font-size: 14px;
+    color: #334155;
+    line-height: 1.6;
+    max-height: 66px;
+    overflow: hidden;
+    position: relative;
+}
+
+.alert-card__desc::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 60px; height: 22px;
+    background: linear-gradient(to right, transparent, white);
+}
+
+.alert-card__media {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.alert-card__media img {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.alert-card__media img:hover {
+    transform: scale(1.05);
+}
+
+.alert-card__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 160px;
+}
+
+.btn-approve {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.btn-approve:hover { 
+    background: var(--primary-hover); 
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px); 
+}
+
+.btn-reject {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--danger);
+    background: #fff;
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-reject:hover {
+    background: #FEF2F2;
+}
+
+.btn-request-info,
+.btn-insufficient,
+.btn-appeal-review {
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-main);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-request-info:hover,
+.btn-insufficient:hover,
+.btn-appeal-review:hover {
+    background: #F8FAFC;
+}
+
+.btn-view-map {
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #F8FAFC;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    display: block;
+    transition: all 0.2s;
+}
+
+.btn-view-map:hover { 
+    background: #F1F5F9; 
+    color: var(--text-main);
+}
+
+/* Loading & Pagination */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 60px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.spinner {
+    width: 28px; height: 28px;
+    border: 3px solid #E2E8F0;
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.empty-state svg { opacity: 0.3; margin-bottom: 16px; }
+
+.pagination-bar {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 32px;
+}
+
+.page-btn {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.page-btn.active, .page-btn:hover {
+    background: var(--text-main);
+    color: #fff;
+    border-color: var(--text-main);
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-box h5 { margin: 0 0 8px; font-size: 20px; font-weight: 800; color: var(--text-main);}
+
+.modal-box textarea {
+    width: 100%;
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    margin-top: 16px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    background: #F8FAFC;
+}
+
+.modal-box textarea:focus { 
+    border-color: var(--text-main); 
+    background: #fff;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: flex-end;
+}
+
+.btn-cancel {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #fff;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-cancel:hover { background: #F8FAFC; color: var(--text-main); }
+
+.btn-confirm-reject {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: none;
+    background: var(--danger);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-confirm-reject:hover { background: var(--danger-hover); }
+</style>
+
+
+<script>
+    const API = '/api/alerts';
+    const token = localStorage.getItem('token');
+    const authHeader = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+    let currentStatus = 'PENDING';
+    let currentPage = 1;
+    let pendingAction = null;
+    let needsMoreInfoAutoHideEnabled = true;
+    const PAGE_SIZE = 15;
+    const NEEDS_MORE_INFO_TOGGLE_API = `${API}/admin/needs-more-info-auto-hide`;
+
+    function renderNeedsMoreInfoToggle() {
+        const button = document.getElementById('needsMoreInfoToggle');
+        button.textContent = needsMoreInfoAutoHideEnabled
+            ? 'Tự ẩn sau 24h: Bật'
+            : 'Tự ẩn sau 24h: Tắt';
+        button.classList.toggle('is-enabled', needsMoreInfoAutoHideEnabled);
+        button.classList.toggle('is-disabled', !needsMoreInfoAutoHideEnabled);
+    }
+
+    async function loadNeedsMoreInfoAutoHideState() {
+        const res = await fetch(NEEDS_MORE_INFO_TOGGLE_API, { headers: authHeader });
+        const data = await res.json();
+        needsMoreInfoAutoHideEnabled = !!data.enabled;
+        renderNeedsMoreInfoToggle();
+    }
+
+    async function toggleNeedsMoreInfoAutoHide() {
+        const nextValue = !needsMoreInfoAutoHideEnabled;
+        const res = await fetch(NEEDS_MORE_INFO_TOGGLE_API, {
+            method: 'POST',
+            headers: authHeader,
+            body: JSON.stringify({ enabled: nextValue })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            needsMoreInfoAutoHideEnabled = !!data.enabled;
+            renderNeedsMoreInfoToggle();
+            showNotif(data.message, 'success');
+            loadAlerts(currentStatus, currentPage);
+            return;
+        }
+
+        showNotif(data.message || 'Không thể cập nhật cấu hình', 'error');
+    }
+
+    function getNeedsMoreInfoDescription() {
+        return needsMoreInfoAutoHideEnabled
+            ? 'Người dùng sẽ có 24 giờ để bổ sung bằng chứng.'
+            : 'Báo cáo sẽ không tự ẩn sau 24 giờ.';
+    }
+
+    async function loadAlerts(status, page = 1) {
+        currentStatus = status;
+        currentPage = page;
+
+        document.getElementById('alertsList').innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div><span>Đang tải...</span>
+            </div>`;
+
+        try {
+            let url;
+            if (status === 'PENDING') {
+                url = `${API}/admin/pending`;
+            } else if (status === 'REPORTS') {
+                url = `${API}/admin/reports`;
+            } else {
+                const params = new URLSearchParams({ page, pageSize: PAGE_SIZE });
+                if (status) params.set('status', status);
+                url = `${API}/admin/all?${params}`;
+            }
+
+            const res = await fetch(url, { headers: authHeader });
+            const data = await res.json();
+            const items = Array.isArray(data) ? data : data.items;
+            const total = Array.isArray(data) ? data.length : data.total;
+
+            if (status === 'PENDING') {
+                document.getElementById('pendingCount').textContent = total;
+            }
+
+            if (status === 'REPORTS') {
+                renderReportCards(items);
+                return;
+            }
+
+            renderAlerts(items, status, total, page);
+        } catch (_) {
+            document.getElementById('alertsList').innerHTML = `<div class="empty-state"><p>Không thể tải dữ liệu</p></div>`;
+        }
+    }
+
+    function renderAlerts(items, status, total, page) {
+        const container = document.getElementById('alertsList');
+
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                    </svg>
+                    <p>Không có báo cáo nào</p>
+                </div>`;
+            document.getElementById('pagination').style.display = 'none';
+            return;
+        }
+
+        const statusMap = {
+            'VISIBLE_UNVERIFIED': ['badge-pending', 'Chưa xác thực'],
+            'VISIBLE_VERIFIED': ['badge-verified', 'Đã xác thực'],
+            'PENDING_REVIEW': ['badge-pending', 'Chờ kiểm duyệt'],
+            'REJECTED': ['badge-rejected', 'Bị bác bỏ'],
+            'NOT_ENOUGH_EVIDENCE': ['badge-rejected', 'Không đủ cơ sở'],
+            'NEEDS_MORE_INFO': ['badge-approved', 'Cần bổ sung'],
+            'RESOLVED': ['badge-approved', 'Đã xử lý'],
+            'EXPIRED': ['badge-rejected', 'Hết hạn'],
+            'HIDDEN': ['badge-rejected', 'Đã ẩn'],
+            'DELETED': ['badge-rejected', 'Đã xóa mềm']
+        };
+
+        container.innerHTML = items.map(a => {
+            const [badgeClass, badgeText] = statusMap[a.status] || ['badge-pending', a.status || 'Không rõ'];
+            const mediaHtml = a.mediaUrls?.slice(0, 3).map(url => `<img src="${url}" onclick="window.open('${url}','_blank')" alt="media" />`).join('') || '';
+            const details = [
+                a.reviewPriority ? `<div><strong>Độ ưu tiên:</strong> ${formatReviewPriority(a)}</div>` : '',
+                a.reviewDueAt ? `<div><strong>Hạn SLA:</strong> ${new Date(a.reviewDueAt).toLocaleString('vi-VN')}</div>` : '',
+                a.displayPriority ? `<div><strong>Ưu tiên hiển thị:</strong> ${a.displayPriority}</div>` : '',
+                a.autoHideAt ? `<div><strong>Tự ẩn lúc:</strong> ${new Date(a.autoHideAt).toLocaleString('vi-VN')}</div>` : '',
+                a.filterReason ? `<div><strong>Bộ lọc:</strong> ${escHtml(a.filterReason)}</div>` : '',
+                a.moderationReason ? `<div><strong>Moderation:</strong> ${escHtml(a.moderationReason)}</div>` : '',
+                a.moreInfoDeadline ? `<div><strong>Hạn bổ sung:</strong> ${new Date(a.moreInfoDeadline).toLocaleString('vi-VN')}</div>` : a.status === 'NEEDS_MORE_INFO' ? '<div><strong>Hạn bổ sung:</strong> Không tự ẩn sau 24 giờ</div>' : '',
+                a.appealStatus ? `<div><strong>Khiếu nại:</strong> ${escHtml(a.appealStatus)}${a.appealSubmittedAt ? ' - ' + new Date(a.appealSubmittedAt).toLocaleString('vi-VN') : ''}</div>` : '',
+                a.appealReason ? `<div><strong>Lý do khiếu nại:</strong> ${escHtml(a.appealReason)}</div>` : '',
+                a.appealReviewNote ? `<div><strong>Ghi chú review:</strong> ${escHtml(a.appealReviewNote)}</div>` : ''
+            ].filter(Boolean).join('');
+            const actionBtns = buildActionButtons(a);
+            const timeStr = new Date(a.incidentTime).toLocaleString('vi-VN');
+
+            return `
+                <div class="alert-card" id="card-${a.id}">
+                    <div>
+                        <span class="alert-card__badge ${badgeClass}">${badgeText}</span>
+                        <span style="margin-left:8px;font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:10px;color:#475569">
+                            ${escHtml(a.alertTypeName || 'Sự cố')}
+                        </span>
+                        <h5 class="alert-card__title">${escHtml(a.title)}</h5>
+                        <div class="alert-card__meta">
+                            <span>Vị trí: ${escHtml(a.addressText || '(chưa có địa chỉ)')}</span>
+                            <span>Thời gian: ${timeStr}</span>
+                            <span>Người gửi: ${escHtml(a.userName)}</span>
+                            <span>Xác nhận: ${a.confirmCount} / Phủ nhận: ${a.denyCount}</span>
+                        </div>
+                        <div class="alert-card__desc">${escHtml(a.description)}</div>
+                        ${details ? `<div style="margin-top:12px;font-size:13px;color:#475569;display:grid;gap:6px">${details}</div>` : ''}
+                        ${mediaHtml ? `<div class="alert-card__media">${mediaHtml}</div>` : ''}
+                    </div>
+                    <div class="alert-card__actions">
+                        ${actionBtns}
+                        <button class="btn-view-map" onclick="flyToReport(${a.longitude || 0}, ${a.latitude || 0})">Xem bản đồ</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        if (status !== 'PENDING' && total > PAGE_SIZE) {
+            const totalPages = Math.ceil(total / PAGE_SIZE);
+            document.getElementById('pagination').style.display = 'flex';
+            document.getElementById('pagination').innerHTML = Array.from({ length: totalPages }, (_, i) => i + 1)
+                .map(p => `<button class="page-btn ${p === page ? 'active' : ''}" onclick="loadAlerts('${status || ''}', ${p})">${p}</button>`)
+                .join('');
+        } else {
+            document.getElementById('pagination').style.display = 'none';
+        }
+    }
+
+    function renderReportCards(items) {
+        const container = document.getElementById('alertsList');
+        document.getElementById('pagination').style.display = 'none';
+
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <p>Không có báo cáo vi phạm nào</p>
+                </div>`;
+            return;
+        }
+
+        const reportStatusMap = {
+            'PENDING': ['badge-pending', 'Chờ xử lý'],
+            'REVIEWED': ['badge-approved', 'Đã xem']
+        };
+
+        container.innerHTML = items.map(report => {
+            const [badgeClass, badgeText] = reportStatusMap[report.status] || ['badge-pending', report.status || 'Không rõ'];
+            const description = report.description
+                ? `<div style="margin-top:12px;font-size:13px;color:#475569"><strong>Mô tả thêm:</strong> ${escHtml(report.description)}</div>`
+                : '';
+
+            return `
+                <div class="alert-card" id="report-card-${report.reportId}">
+                    <div>
+                        <span class="alert-card__badge ${badgeClass}">${badgeText}</span>
+                        <span style="margin-left:8px;font-size:12px;background:#fef2f2;padding:2px 8px;border-radius:10px;color:#991b1b">
+                            ${escHtml(report.reasonLabel || report.reason || 'Không rõ')}
+                        </span>
+                        <h5 class="alert-card__title">${escHtml(report.alertTitle || 'Bài viết không tiêu đề')}</h5>
+                        <div class="alert-card__meta">
+                            <span>Người báo cáo: ${escHtml(report.reporterName || 'Ẩn danh')}</span>
+                            <span>Trạng thái bài viết: ${escHtml(report.alertStatus || 'Không rõ')}</span>
+                            <span>Thời gian: ${new Date(report.createdAt).toLocaleString('vi-VN')}</span>
+                        </div>
+                        ${description}
+                    </div>
+                    <div class="alert-card__actions">
+                        ${buildReportActionButtons(report)}
+                        <button class="btn-view-map" onclick="flyToReport(${report.longitude || 0}, ${report.latitude || 0})">Xem bản đồ</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function formatReviewPriority(alert) {
+        if (alert.isReviewOverdue) return 'Quá SLA';
+        if (alert.reviewPriority === 'HOT') return 'Tin nóng';
+        if (alert.reviewPriority === 'NORMAL') return 'Tin thường';
+        return escHtml(alert.reviewPriority || 'Không rõ');
+    }
+
+    function buildActionButtons(alert) {
+        if (alert.status === 'PENDING_REVIEW') {
+            return `
+                <button class="btn-approve" onclick="runQuickAction('${API}/admin/${alert.id}/approve')">Duyệt hiển thị</button>
+                <button class="btn-request-info" onclick="openActionModal('${API}/admin/${alert.id}/request-info', 'Yêu cầu bổ sung bằng chứng', getNeedsMoreInfoDescription(), 'Yêu cầu bổ sung', true)">Yêu cầu bổ sung</button>
+                <button class="btn-insufficient" onclick="openActionModal('${API}/admin/${alert.id}/insufficient', 'Đánh dấu không đủ cơ sở', 'Báo cáo sẽ bị ẩn nhưng không bị phạt uy tín.', 'Không đủ cơ sở', true)">Không đủ cơ sở</button>
+                <button class="btn-reject" onclick="openActionModal('${API}/admin/${alert.id}/reject', 'Bác bỏ báo cáo', 'Hành động này sẽ trừ uy tín người gửi và mở quyền khiếu nại 24 giờ.', 'Bác bỏ', true)">Bác bỏ</button>
+            `;
+        }
+
+        if (alert.status === 'REJECTED' && alert.appealStatus === 'PENDING') {
+            return `
+                <button class="btn-approve" onclick="openActionModal('${API}/admin/${alert.id}/appeal/approve', 'Chấp nhận khiếu nại', 'Báo cáo sẽ được đưa về hàng chờ kiểm duyệt lại.', 'Chấp nhận khiếu nại', false)">Chấp nhận khiếu nại</button>
+                <button class="btn-appeal-review" onclick="openActionModal('${API}/admin/${alert.id}/appeal/reject', 'Giữ nguyên bác bỏ', 'Bạn có thể nhập ghi chú cho quyết định giữ nguyên bác bỏ.', 'Giữ nguyên bác bỏ', false)">Giữ nguyên bác bỏ</button>
+            `;
+        }
+
+        return `<span style="font-size:12px;color:#94a3b8">Không có hành động nhanh</span>`;
+    }
+
+    function buildReportActionButtons(report) {
+        if (report.status === 'REVIEWED') {
+            return `<span style="font-size:12px;color:#94a3b8">Đã xử lý</span>`;
+        }
+
+        return `
+            <button class="btn-request-info" onclick="openActionModal('${API}/admin/reports/${report.reportId}/hide', 'Ẩn bài viết', 'Bài viết sẽ bị ẩn khỏi bản đồ.', 'Ẩn bài', false)">Ẩn bài</button>
+            <button class="btn-reject" onclick="openActionModal('${API}/admin/reports/${report.reportId}/delete', 'Xóa mềm bài viết', 'Bài viết sẽ chuyển sang trạng thái đã xóa mềm.', 'Xóa bài', false)">Xóa bài</button>
+            <button class="btn-appeal-review" onclick="openActionModal('${API}/admin/reports/${report.reportId}/ban', 'Khóa tài khoản', 'Tài khoản người đăng sẽ bị khóa và toàn bộ bài viết của họ sẽ bị ẩn.', 'Khóa tài khoản', false)">Khóa tài khoản</button>
+            <button class="btn-approve" onclick="openActionModal('${API}/admin/reports/${report.reportId}/ignore', 'Bỏ qua báo cáo', 'Đánh dấu báo cáo vi phạm là đã xem mà không tác động thêm lên bài viết.', 'Bỏ qua', false)">Bỏ qua</button>
+        `;
+    }
+
+    async function runQuickAction(endpoint) {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: authHeader
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showNotif(data.message, 'success');
+            loadAlerts(currentStatus, currentPage);
+        } else {
+            showNotif(data.message, 'error');
+        }
+    }
+
+    function openActionModal(endpoint, title, description, confirmText, requireReason) {
+        pendingAction = { endpoint, requireReason };
+        document.getElementById('actionModalTitle').textContent = title;
+        document.getElementById('actionModalDescription').textContent = description;
+        document.getElementById('actionModalConfirm').textContent = confirmText;
+        document.getElementById('actionModalReason').value = '';
+        document.getElementById('actionModalReason').placeholder = requireReason ? 'Nhập lý do bắt buộc...' : 'Nhập ghi chú nếu cần...';
+        document.getElementById('actionModalReason').style.border = '1px solid var(--border-color)';
+        document.getElementById('actionModal').style.display = 'flex';
+        document.getElementById('actionModalReason').focus();
+    }
+
+    function closeActionModal() {
+        pendingAction = null;
+        document.getElementById('actionModal').style.display = 'none';
+    }
+
+    async function confirmActionModal() {
+        if (!pendingAction) return;
+
+        const reason = document.getElementById('actionModalReason').value.trim();
+        if (pendingAction.requireReason && !reason) {
+            document.getElementById('actionModalReason').style.border = '1px solid red';
+            return;
+        }
+
+        const res = await fetch(pendingAction.endpoint, {
+            method: 'POST',
+            headers: authHeader,
+            body: JSON.stringify({ reason })
+        });
+        const data = await res.json();
+        closeActionModal();
+
+        if (data.success) {
+            showNotif(data.message, 'success');
+            loadAlerts(currentStatus, currentPage);
+        } else {
+            showNotif(data.message, 'error');
+        }
+    }
+
+    function flyToReport(lng, lat) {
+        if (lng && lat) {
+            sessionStorage.setItem('flyTo', JSON.stringify({ lng, lat }));
+            window.open('/', '_blank');
+        }
+    }
+
+    function switchTab(btn) {
+        document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadAlerts(btn.dataset.status, 1);
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function showNotif(msg, type) {
+        const el = document.createElement('div');
+        el.style.cssText = `
+            position:fixed;bottom:24px;right:24px;z-index:9999;
+            padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;
+            background:${type === 'success' ? '#10B981' : '#EF4444'};color:#fff;
+            box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideInRight 0.3s ease;
+        `;
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3500);
+    }
+
+    document.getElementById('actionModal').addEventListener('click', function(e) {
+        if (e.target === this) closeActionModal();
+    });
+
+    (async function initPage() {
+        try {
+            await loadNeedsMoreInfoAutoHideState();
+        } catch (_) {
+            showNotif('Không thể tải cấu hình tự ẩn 24 giờ', 'error');
+        }
+        loadAlerts('PENDING');
+    })();
+</script>

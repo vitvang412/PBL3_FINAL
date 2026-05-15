@@ -1,0 +1,694 @@
+using Microsoft.AspNetCore.Mvc;
+using DaNangSafeMap.Services.Interfaces;
+using DaNangSafeMap.Models.Entities;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+
+namespace DaNangSafeMap.Controllers
+{
+    public class ArticleController : Controller
+    {
+        private readonly IArticleService _articleService;
+        private readonly IWebHostEnvironment _env;
+
+        public ArticleController(IArticleService articleService, IWebHostEnvironment env)
+        {
+            _articleService = articleService;
+            _env = env;
+        }
+
+        // ══════════════════════════════════════════════
+        // HELPER: Lấy UserId từ JWT cookie
+        // ══════════════════════════════════════════════
+        private int? GetCurrentUserId()
+        {
+            var token = Request.Cookies["jwtToken"];
+            if (string.IsNullOrEmpty(token)) return null;
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(token);
+                var idClaim = jwt.Claims.FirstOrDefault(c => c.Type == "nameid" || c.Type == ClaimTypes.NameIdentifier);
+                return idClaim != null ? int.Parse(idClaim.Value) : null;
+            }
+            catch { return null; }
+        }
+
+        private string? GetCurrentUserRole()
+        {
+            var token = Request.Cookies["jwtToken"];
+            if (string.IsNullOrEmpty(token)) return null;
+            try
+            {
+                var handler = new JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(token);
+                var roleClaim = jwt.Claims.FirstOrDefault(c => c.Type == "role" || c.Type == ClaimTypes.Role);
+                return roleClaim?.Value;
+            }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// Trả về đường dẫn thư mục upload (nằm ngoài wwwroot để tránh dotnet watch hot-reload).
+        /// URL phục vụ file vẫn là /uploads/...
+        /// </summary>
+        private string GetUploadsDir(string subFolder = "articles")
+        {
+            var path = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", subFolder);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        // ══════════════════════════════════════════════
+        // DANH SÁCH BÀI VIẾT TỔNG HỢP (Home, Category, Admin, Personal)
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Index(string? categorySlug = null, string? mode = null, int page = 1, string? q = null)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+
+            ViewBag.Mode = mode ?? "public";
+            ViewBag.CurrentCategory = categorySlug;
+            ViewBag.CurrentPage = page;
+            ViewBag.UserId = userId;
+            ViewBag.Role = role;
+            ViewBag.Query = q;
+
+            // Search mode — when ?q=... is supplied, show results instead of normal layout.
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                ViewBag.Mode = "search";
+                ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+                var results = await _articleService.SearchArticlesAsync(q, 40);
+                ViewBag.Latest = results;
+                return View("Index", new List<Article>());
+            }
+
+            if (mode == "my")
+            {
+                if (userId == null) return Redirect("/Auth/Login");
+                var myArticles = await _articleService.GetUserArticlesAsync(userId.Value);
+                ViewBag.Notifications = await _articleService.GetUserNotificationsAsync(userId.Value);
+                return View("Index", myArticles);
+            }
+
+            // Public Mode (Home / Category).
+            //
+            // NOTE: previously this used 4 × Task.Run with separate scopes so the
+            // queries ran "in parallel". On cold start that opened 4 simultaneous
+            // MySQL connections and made the page take ~10s. EF Core I/O is already
+            // async, so sequential await on ONE DbContext reuses a single pooled
+            // connection and is actually faster in practice. Responses are also
+            // cached in-memory inside ArticleService (see AddMemoryCache), so after
+            // the first hit subsequent loads skip the DB entirely until the TTL
+            // expires or a moderator action invalidates the cache.
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Featured = await _articleService.GetFeaturedArticlesAsync(4, categorySlug);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(10);
+
+            if (string.IsNullOrEmpty(categorySlug))
+            {
+                ViewBag.Mode = "home";
+                ViewBag.Latest = await _articleService.GetLatestArticlesAsync(12, null);
+
+                // Build per-category latest lists for the home page's section blocks
+                // (kiểu báo Đà Nẵng: mỗi chuyên mục một block "header đỏ + 1 bài lớn + 6 bài nhỏ").
+                var byCat = new Dictionary<string, List<Article>>();
+                var cats = ViewBag.Categories as List<Category> ?? new();
+                foreach (var c in cats)
+                {
+                    if (string.IsNullOrEmpty(c.Slug)) continue;
+                    byCat[c.Slug] = await _articleService.GetLatestArticlesAsync(7, c.Slug);
+                }
+                ViewBag.LatestByCat = byCat;
+            }
+            else
+            {
+                int pageSize = 24;
+                var total = await _articleService.GetArticleCountByCategoryAsync(categorySlug);
+                var items = await _articleService.GetArticlesByCategoryAsync(categorySlug, page, pageSize);
+                ViewBag.Total = total;
+                ViewBag.PageSize = pageSize;
+                ViewBag.CurrentPage = page;
+                ViewBag.Latest = items;
+            }
+
+            return View("Index", new List<Article>());
+        }
+
+        // ══════════════════════════════════════════════
+        // CHI TIẾT BÀI VIẾT
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            var role = GetCurrentUserRole();
+            var article = role == "Admin" 
+                ? await _articleService.GetArticleByIdUnfilteredAsync(id)
+                : await _articleService.GetArticleByIdAsync(id);
+
+            if (article == null)
+                return NotFound();
+
+            // Nếu không phải Admin thì bắt buộc bài phải ở trạng thái APPROVED (2)
+            if (role != "Admin" && article.Status != 2)
+                return NotFound();
+
+            // Tăng lượt xem
+            var userId = GetCurrentUserId();
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _articleService.IncrementViewCountAsync(id, ip, userId);
+
+            ViewBag.Related = await _articleService.GetRelatedArticlesAsync(id, 10);
+            ViewBag.MostViewed = await _articleService.GetMostViewedArticlesAsync(6);
+            ViewBag.LatestSameCategory = await _articleService.GetLatestArticlesAsync(20, article.Category?.Slug);
+            ViewBag.UserId = userId;
+            ViewBag.Role = GetCurrentUserRole();
+
+            // Để sub-nav highlight đúng mục (An ninh / Đời sống) khi đọc Details
+            ViewBag.CurrentCategory = article.Category?.Slug;
+            ViewBag.Mode = "details";
+
+            return View("Details", article);
+        }
+
+        // ══════════════════════════════════════════════
+        // XEM TRƯỚC BÀI VIẾT DÀNH CHO ADMIN
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Preview(int id)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var article = await _articleService.GetArticleByIdUnfilteredAsync(id);
+            if (article == null) return NotFound();
+
+            return View("Preview", article);
+        }
+
+        // ══════════════════════════════════════════════
+        // ĐĂNG BÀI
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Create()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Redirect("/Auth/Login");
+
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Role = GetCurrentUserRole();
+            return View("Create");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(string title, string? summary, string content,
+            int categoryId, IFormFile? image, IFormFile? video, bool isFeatured = false)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Unauthorized();
+
+            var uploadsDir = GetUploadsDir("articles");
+
+            string? imageUrl = null;
+            if (image != null && image.Length > 0)
+            {
+                var (isValid, error) = ValidateImage(image);
+                if (!isValid)
+                {
+                    ModelState.AddModelError("image", error ?? "Ảnh không hợp lệ");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Create");
+                }
+                var imgName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
+                var imgPath = Path.Combine(uploadsDir, imgName);
+                using var imgStream = new FileStream(imgPath, FileMode.Create);
+                await image.CopyToAsync(imgStream);
+                imageUrl = $"/uploads/articles/{imgName}";
+            }
+
+            string? videoUrl = null;
+            if (video != null && video.Length > 0)
+            {
+                var allowedVideo = new[] { ".mp4", ".webm", ".mov", ".avi" };
+                var videoExt = Path.GetExtension(video.FileName).ToLower();
+                if (!allowedVideo.Contains(videoExt))
+                {
+                    ModelState.AddModelError("video", "Chỉ chấp nhận file video .mp4, .webm, .mov, .avi");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Create");
+                }
+                if (video.Length > 200 * 1024 * 1024) // 200MB
+                {
+                    ModelState.AddModelError("video", "Video không được vượt quá 200MB");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Create");
+                }
+                var vidName = $"{Guid.NewGuid()}{videoExt}";
+                var vidPath = Path.Combine(uploadsDir, vidName);
+                using var vidStream = new FileStream(vidPath, FileMode.Create);
+                await video.CopyToAsync(vidStream);
+                videoUrl = $"/uploads/articles/{vidName}";
+            }
+
+            var article = new Article
+            {
+                Title = title,
+                Summary = summary,
+                Content = content,
+                CategoryId = categoryId,
+                AuthorId = userId.Value,
+                ImageUrl = imageUrl,
+                VideoUrl = videoUrl,
+                IsFeatured = (role == "Admin") ? isFeatured : false,
+                Status = (role == "Admin") ? 2 : 1 // Admin auto approve
+            };
+
+            await _articleService.CreateArticleAsync(article);
+
+            if (role == "Admin") return RedirectToAction("Manage", "Article");
+            return RedirectToAction("Index", new { mode = "my" });
+        }
+
+        // ══════════════════════════════════════════════
+        // CHỈNH SỬA BÀI VIẾT
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Redirect("/Auth/Login");
+
+            var article = await _articleService.GetArticleByIdAsync(id);
+            if (article == null) return NotFound();
+
+            // Chỉ Admin hoặc tác giả mới được sửa
+            if (role != "Admin" && article.AuthorId != userId.Value) return Forbid();
+
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.Role = role;
+            return View("Edit", article);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, string title, string? summary, string content,
+            int categoryId, IFormFile? image, bool isFeatured = false)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (userId == null) return Unauthorized();
+
+            var existing = await _articleService.GetArticleByIdAsync(id);
+            if (existing == null) return NotFound();
+            if (role != "Admin" && existing.AuthorId != userId.Value) return Forbid();
+
+            string? imageUrl = existing.ImageUrl;
+            if (image != null && image.Length > 0)
+            {
+                var (isValid, error) = ValidateImage(image);
+                if (!isValid)
+                {
+                    ModelState.AddModelError("image", error ?? "Ảnh không hợp lệ");
+                    ViewBag.Categories = await _articleService.GetCategoriesAsync();
+                    ViewBag.Role = role;
+                    return View("Edit", existing);
+                }
+
+                var uploadsDir = GetUploadsDir("articles");
+                var fileName = $"{Guid.NewGuid()}{Path.GetExtension(image.FileName)}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+                using var stream = new FileStream(filePath, FileMode.Create);
+                await image.CopyToAsync(stream);
+                imageUrl = $"/uploads/articles/{fileName}";
+            }
+
+            var updated = new Article
+            {
+                Title = title,
+                Summary = summary,
+                Content = content,
+                CategoryId = categoryId,
+                ImageUrl = imageUrl,
+            };
+
+            // Admin có quyền cập nhật bất kỳ bài nào (kể cả của user khác).
+            // Service hiện tại chỉ cho author tự sửa, nên với Admin ta đi đường QuickUpdate
+            // để bypass author-check, và cập nhật riêng nội dung qua context.
+            if (role == "Admin")
+            {
+                await _articleService.AdminUpdateArticleAsync(id, title, summary, content, categoryId, imageUrl, isFeatured);
+                TempData["AdminMsg"] = "Đã cập nhật bài viết.";
+                return RedirectToAction("Manage", "Article");
+            }
+            else
+            {
+                var ok = await _articleService.UpdateArticleAsync(id, userId.Value, updated);
+                if (ok == null) return Forbid();
+                return RedirectToAction("Index", new { mode = "my" });
+            }
+        }
+
+        // ══════════════════════════════════════════════
+        // ADMIN — WP-style management page
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> Manage(string status = "all", string? q = null,
+            int? categoryId = null, int page = 1, string? view = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            const int pageSize = 20;
+            var (items, total, cAll, cPub, cDraft, cTrash) =
+                await _articleService.GetAdminArticlesAsync(status, q, categoryId, page, pageSize, view);
+
+            ViewBag.Status = status;
+            ViewBag.Query = q;
+            ViewBag.CategoryId = categoryId;
+            ViewBag.View = view;
+            ViewBag.CurrentPage = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.Total = total;
+            ViewBag.CountAll = cAll;
+            ViewBag.CountPublished = cPub;
+            ViewBag.CountDraft = cDraft;
+            ViewBag.CountTrash = cTrash;
+            ViewBag.Categories = await _articleService.GetCategoriesAsync();
+            ViewBag.UserId = GetCurrentUserId();
+            ViewBag.Role = role;
+
+            return View("~/Views/Admin/Manage.cshtml", items);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkAction(int[] ids, string action, string? returnStatus = "all", string? q = null, int? categoryId = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            int affected = 0;
+            string msg = "";
+            switch (action)
+            {
+                case "trash":
+                    affected = await _articleService.BulkTrashAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã chuyển {affected} bài viết vào thùng rác.";
+                    break;
+                case "restore":
+                    affected = await _articleService.BulkRestoreAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã khôi phục {affected} bài viết.";
+                    break;
+                case "permdelete":
+                    affected = await _articleService.BulkPermanentDeleteAsync(ids ?? Array.Empty<int>());
+                    msg = $"Đã xóa vĩnh viễn {affected} bài viết.";
+                    break;
+                default:
+                    msg = "Tác vụ không hợp lệ.";
+                    break;
+            }
+            TempData["AdminMsg"] = msg;
+            return RedirectToAction("Manage", new { status = returnStatus, q, categoryId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Duplicate(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            var copy = await _articleService.DuplicateArticleAsync(id, userId.Value);
+            TempData["AdminMsg"] = copy != null
+                ? $"Đã tạo bản sao bài viết #{copy.Id}."
+                : "Không tìm thấy bài để sao chép.";
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> QuickEdit(int id, string title, string? slug,
+            int categoryId, int statusValue, bool isFeatured, bool isFocus, bool isEvent, string? returnStatus = "all", string? q = null)
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var ok = await _articleService.QuickUpdateAsync(id, title, slug, categoryId, statusValue, isFeatured, isFocus, isEvent);
+            TempData["AdminMsg"] = ok ? "Đã lưu thay đổi nhanh." : "Không tìm thấy bài viết.";
+            return RedirectToAction("Manage", new { status = returnStatus, q });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleFeatured(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.ToggleFeaturedArticleAsync(id, userId.Value);
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleFocus(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.ToggleFocusArticleAsync(id, userId.Value);
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleEvent(int id, string? returnStatus = "all")
+        {
+            var role = GetCurrentUserRole();
+            var userId = GetCurrentUserId();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.ToggleEventArticleAsync(id, userId.Value);
+            return RedirectToAction("Manage", new { status = returnStatus });
+        }
+
+        // ══════════════════════════════════════════════
+        // SAFEWIKI
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public IActionResult SafeWiki()
+        {
+            ViewBag.UserId = GetCurrentUserId();
+            ViewBag.Role = GetCurrentUserRole();
+            return View();
+        }
+
+        // ══════════════════════════════════════════════
+        // HOTLINE KHẨN CẤP
+        // ══════════════════════════════════════════════
+        [HttpGet]
+        public IActionResult Hotline()
+        {
+            ViewBag.UserId = GetCurrentUserId();
+            ViewBag.Role = GetCurrentUserRole();
+            return View();
+        }
+
+        // ══════════════════════════════════════════════
+        // API ENDPOINTS
+        // ══════════════════════════════════════════════
+
+        // POST /Article/AddComment
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int articleId, string content)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized(new { message = "Vui lòng đăng nhập để bình luận" });
+
+            if (string.IsNullOrWhiteSpace(content))
+                return BadRequest(new { message = "Nội dung bình luận không được để trống" });
+
+            var comment = await _articleService.AddCommentAsync(articleId, userId.Value, content.Trim());
+            return Ok(new
+            {
+                id = comment.Id,
+                content = comment.Content,
+                userName = comment.User?.FullName ?? "Ẩn danh",
+                avatar = comment.User?.Avatar,
+                createdAt = comment.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+            });
+        }
+
+        // GET /Article/GetNotifications
+        [HttpGet]
+        public async Task<IActionResult> GetNotifications()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Ok(new { unreadCount = 0, items = new object[0] });
+
+            var notifications = await _articleService.GetUserNotificationsAsync(userId.Value);
+            var unread = await _articleService.GetUnreadNotificationCountAsync(userId.Value);
+
+            return Ok(new
+            {
+                unreadCount = unread,
+                items = notifications.Select(n => new
+                {
+                    n.Id,
+                    n.Title,
+                    Message = n.Message,
+                    Type = n.NotificationType,
+                    isRead = n.IsRead,
+                    n.ArticleId,
+                    createdAt = n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                })
+            });
+        }
+
+        // POST /Article/MarkNotificationRead/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkNotificationRead(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+            await _articleService.MarkNotificationReadAsync(id, userId.Value);
+            return Ok();
+        }
+
+        // POST /Article/MarkAllRead
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkAllRead()
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+            await _articleService.MarkAllNotificationsReadAsync(userId.Value);
+            return Ok();
+        }
+
+        // POST /Article/Delete/{id}
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteArticle(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == null) return Unauthorized();
+            var result = await _articleService.DeleteArticleAsync(id, userId.Value);
+            if (!result) return NotFound();
+            return Ok();
+        }
+
+        // ══════════════════════════════════════════════
+        // TINYMCE UPLOAD MEDIA (ảnh + video nhúng vào editor)
+        // Không yêu cầu auth vì TinyMCE AJAX upload không gửi kèm JWT cookie.
+        // Bảo vệ bằng cách validate loại file + giới hạn kích thước.
+        // ══════════════════════════════════════════════
+        [HttpPost]
+        public async Task<IActionResult> UploadMedia(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { error = "Không có file nào được upload" });
+
+            // Validate loại file
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".mov" };
+            var ext = Path.GetExtension(file.FileName).ToLower();
+            if (!allowedExtensions.Contains(ext))
+                return BadRequest(new { error = "Loại file không được hỗ trợ" });
+
+            // Giới hạn: ảnh 10MB, video 200MB
+            bool isVideo = ext is ".mp4" or ".webm" or ".mov";
+            long maxSize = isVideo ? 200L * 1024 * 1024 : 10L * 1024 * 1024;
+            if (file.Length > maxSize)
+                return BadRequest(new { error = isVideo ? "Video tối đa 200MB" : "Ảnh tối đa 10MB" });
+
+            var uploadsDir = GetUploadsDir("articles");
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var path = Path.Combine(uploadsDir, fileName);
+
+            using (var stream = new FileStream(path, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return Json(new { location = $"/uploads/articles/{fileName}" });
+        }
+
+        // ══════════════════════════════════════════════
+        // ADMIN: DUYỆT BÀI VIẾT
+        // ══════════════════════════════════════════════
+
+        [HttpGet]
+        public async Task<IActionResult> AdminArticles()
+        {
+            var role = GetCurrentUserRole();
+            if (role != "Admin") return Forbid();
+
+            var pending = await _articleService.GetPendingArticlesAsync();
+            return View(pending);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Approve(int id)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            var success = await _articleService.ApproveArticleAsync(id, userId.Value);
+            return success ? Ok() : NotFound();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reject(int id, [FromBody] RejectRequest req)
+        {
+            var userId = GetCurrentUserId();
+            var role = GetCurrentUserRole();
+            if (role != "Admin" || userId == null) return Forbid();
+
+            await _articleService.RejectArticleAsync(id, userId.Value, req.Reason);
+            return Ok(new { message = "Đã từ chối bài viết" });
+        }
+
+        private (bool isValid, string? error) ValidateImage(IFormFile image)
+        {
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var extension = Path.GetExtension(image.FileName).ToLower();
+
+            if (!allowedExtensions.Contains(extension))
+                return (false, "Chỉ chấp nhận định dạng .jpg, .jpeg, .png, .webp");
+
+            if (image.Length > 5 * 1024 * 1024) // 5MB
+                return (false, "Dung lượng ảnh không được vượt quá 5MB");
+
+            return (true, null);
+        }
+    }
+
+    // Request models
+    public class ArticleCommentRequest
+    {
+        public int ArticleId { get; set; }
+        public string Content { get; set; } = string.Empty;
+    }
+
+    public class RejectRequest
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+}

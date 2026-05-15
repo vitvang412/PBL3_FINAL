@@ -1,0 +1,661 @@
+@{
+    ViewData["Title"] = "Đóng góp & Ủng hộ";
+}
+
+<style>
+/* ═══════════════════════════════════════════
+   DONATE PAGE — VCF-inspired Premium
+   ═══════════════════════════════════════════ */
+
+/* ── Scroll reveal animation ── */
+.dn-reveal {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dn-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+.dn-reveal.delay-1 { transition-delay: 0.18s; }
+.dn-reveal.delay-2 { transition-delay: 0.36s; }
+.dn-reveal.delay-3 { transition-delay: 0.54s; }
+
+/* Slide from left */
+.dn-reveal-left {
+    opacity: 0;
+    transform: translateX(-60px);
+    transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dn-reveal-left.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Slide from right */
+.dn-reveal-right {
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dn-reveal-right.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Scale in */
+.dn-reveal-scale {
+    opacity: 0;
+    transform: scale(0.85);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.dn-reveal-scale.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ── Section 1: Hero split ── */
+.dn-hero-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 620px;
+}
+
+.dn-hero-left {
+    position: relative;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 60px;
+    overflow: hidden;
+}
+
+.dn-hero-left-bg {
+    position: absolute;
+    inset: 0;
+    background: url('https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=1200&q=80') center/cover no-repeat;
+    z-index: 0;
+}
+
+.dn-hero-left-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 105, 92, 0.88) 0%, rgba(0, 137, 123, 0.8) 50%, rgba(38, 166, 154, 0.75) 100%);
+    z-index: 1;
+}
+
+.dn-hero-left > *:not(.dn-hero-left-bg):not(.dn-hero-left-overlay) {
+    position: relative;
+    z-index: 2;
+}
+
+.dn-hero-tag {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #b2dfdb;
+    margin-bottom: 24px;
+}
+
+.dn-hero-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(28px, 3.5vw, 44px);
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 28px;
+    letter-spacing: -0.5px;
+}
+
+.dn-hero-desc {
+    font-size: 16px;
+    line-height: 1.8;
+    opacity: 0.88;
+    max-width: 480px;
+}
+
+.dn-hero-right {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f0;
+    padding: 50px;
+}
+
+.dn-qr-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    padding: 40px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+}
+
+.dn-qr-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, #00897b, #26a69a, #4db6ac);
+    border-radius: 16px 16px 0 0;
+}
+
+.dn-qr-card h3 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 8px;
+}
+
+.dn-qr-subtitle {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.dn-qr-frame {
+    background: #fafafa;
+    border: 2px dashed #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    display: inline-block;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dn-qr-frame:hover {
+    border-color: #00897b;
+    box-shadow: 0 8px 25px rgba(0, 137, 123, 0.12);
+}
+
+.dn-qr-frame img {
+    width: 240px;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+}
+
+.dn-qr-secure {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 22px;
+    font-size: 12.5px;
+    color: #999;
+}
+
+.dn-qr-secure svg {
+    width: 14px;
+    height: 14px;
+    stroke: #4caf50;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ── Section 2: Cách thức (centered) ── */
+.dn-how-section {
+    background: #fff;
+    padding: 100px 24px;
+    text-align: center;
+}
+
+.dn-how-tag {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #00897b;
+    margin-bottom: 20px;
+}
+
+.dn-how-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 30px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.35;
+}
+
+.dn-how-text {
+    font-size: 16px;
+    line-height: 1.9;
+    color: #666;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* ── Section 3: Steps (alternating) ── */
+.dn-step {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 400px;
+    align-items: center;
+}
+
+.dn-step-bg-light {
+    background: #f9f7f2;
+}
+
+.dn-step-bg-white {
+    background: #fff;
+}
+
+.dn-step-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 50px;
+}
+
+.dn-step-img-wrap img {
+    width: 85%;
+    max-width: 440px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.1);
+    display: block;
+}
+
+.dn-step-content {
+    padding: 60px 70px;
+}
+
+.dn-step-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #c0392b;
+    margin-bottom: 18px;
+}
+
+.dn-step-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(20px, 2.2vw, 28px);
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.45;
+}
+
+/* ── Section 4: Methods (cards) ── */
+.dn-methods-section {
+    background: #f5f5f0;
+    padding: 100px 24px;
+}
+
+.dn-methods-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.dn-methods-head {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+.dn-methods-head .dn-how-tag {
+    margin-bottom: 15px;
+}
+
+.dn-methods-head h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(24px, 2.5vw, 34px);
+    font-weight: 700;
+    color: #1a1a2e;
+}
+
+.dn-method-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+}
+
+.dn-method-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.dn-method-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00897b, #26a69a);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+}
+
+.dn-method-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.08);
+}
+
+.dn-method-card:hover::after {
+    transform: scaleX(1);
+}
+
+.dn-method-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #e0f2f1, #b2dfdb);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.dn-method-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: #00695c;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.dn-method-card h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 12px;
+}
+
+.dn-method-card p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #777;
+}
+
+/* ── Section 5: CTA ── */
+.dn-cta {
+    position: relative;
+    padding: 80px 24px;
+    text-align: center;
+    color: #fff;
+    overflow: hidden;
+}
+
+.dn-cta-bg {
+    position: absolute;
+    inset: 0;
+    background: url('https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1920&q=80') center/cover no-repeat;
+}
+
+.dn-cta-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 105, 92, 0.88);
+}
+
+.dn-cta > *:not(.dn-cta-bg):not(.dn-cta-overlay) {
+    position: relative;
+    z-index: 2;
+}
+
+.dn-cta h2 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(24px, 3vw, 36px);
+    font-weight: 700;
+    margin-bottom: 18px;
+}
+
+.dn-cta p {
+    font-size: 16px;
+    opacity: 0.85;
+    max-width: 550px;
+    margin: 0 auto 35px;
+    line-height: 1.7;
+}
+
+.dn-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    color: #00695c;
+    padding: 14px 36px;
+    border-radius: 50px;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+.dn-cta-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+}
+
+.dn-cta-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ── Responsive ── */
+@@media (max-width: 960px) {
+    .dn-hero-split {
+        grid-template-columns: 1fr;
+    }
+    .dn-hero-left {
+        padding: 60px 30px;
+    }
+    .dn-hero-right {
+        padding: 40px 30px;
+    }
+    .dn-step {
+        grid-template-columns: 1fr;
+    }
+    .dn-step-img-wrap {
+        padding: 30px;
+    }
+    .dn-step-img-wrap img {
+        width: 100%;
+        height: 240px;
+    }
+    .dn-step-content {
+        padding: 40px 30px;
+    }
+    .dn-method-grid {
+        grid-template-columns: 1fr;
+        max-width: 420px;
+        margin: 0 auto;
+    }
+}
+</style>
+
+<div class="dsm-page hr-light-theme">
+
+    <!-- ═══════════ SECTION 1: Hero Split ═══════════ -->
+    <section class="dn-hero-split">
+        <div class="dn-hero-left">
+            <div class="dn-hero-left-bg"></div>
+            <div class="dn-hero-left-overlay"></div>
+            <div class="dn-reveal">
+                <div class="dn-hero-tag">Chung tay cùng chúng tôi để thay đổi cuộc sống</div>
+            </div>
+            <h1 class="dn-hero-title dn-reveal delay-1">
+                100% các khoản đóng góp sẽ được sử dụng để phát triển ứng dụng vì cộng đồng
+            </h1>
+            <p class="dn-hero-desc dn-reveal delay-2">
+                Mỗi đóng góp của bạn, dù lớn hay nhỏ, đều trực tiếp giúp duy trì và nâng cấp hệ thống cảnh báo an ninh,
+                hỗ trợ tìm kiếm người thất lạc — mang lại sự an toàn cho hàng ngàn người dân và du khách tại Đà Nẵng.
+            </p>
+        </div>
+        <div class="dn-hero-right">
+            <div class="dn-qr-card dn-reveal-scale">
+                <h3>Quét mã QR ủng hộ</h3>
+                <p class="dn-qr-subtitle">Mở ứng dụng ngân hàng và quét mã bên dưới</p>
+                <div class="dn-qr-frame">
+                    <img src="~/images/qr-donate.jpg" alt="Mã QR Đóng Góp" />
+                </div>
+                <div class="dn-qr-secure">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                    <span>Giao dịch an toàn & bảo mật</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 2: Cách thức ═══════════ -->
+    <section class="dn-how-section">
+        <div class="dn-how-tag dn-reveal">Cách thức quyên góp</div>
+        <h2 class="dn-how-title dn-reveal delay-1">
+            Bạn sẽ giúp đỡ cộng đồng Đà Nẵng như thế nào
+        </h2>
+        <p class="dn-how-text dn-reveal delay-2">
+            Mỗi khoản quyên góp, dù lớn hay nhỏ, đều vô cùng quan trọng và có ý nghĩa trong việc hỗ trợ hành trình phát triển DaNang SafeMap.
+            Những đóng góp hào phóng của bạn sẽ giúp hệ thống cảnh báo an ninh vận hành ổn định 24/7, hỗ trợ tìm kiếm người thất lạc hiệu quả hơn,
+            và mang lại cơ hội tiếp cận thông tin an toàn cho toàn bộ cộng đồng.
+            Cùng nhau, chúng ta có thể thay đổi cuộc sống và tạo ra tương lai tốt đẹp hơn cho thành phố Đà Nẵng.
+        </p>
+    </section>
+
+    <!-- ═══════════ SECTION 3: Steps ═══════════ -->
+    <!-- Bước 1 -->
+    <div class="dn-step dn-step-bg-light">
+        <div class="dn-step-content">
+            <div class="dn-step-label dn-reveal-left">Bước 1</div>
+            <h3 class="dn-step-title dn-reveal-left delay-1">
+                Chúng tôi tiếp nhận khoản đóng góp của bạn và sử dụng toàn bộ để vận hành máy chủ, duy trì hệ thống hoạt động ổn định
+            </h3>
+        </div>
+        <div class="dn-step-img-wrap">
+            <img src="https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&q=80" alt="Tiếp nhận đóng góp" class="dn-reveal-right" />
+        </div>
+    </div>
+
+    <!-- Bước 2 -->
+    <div class="dn-step dn-step-bg-white">
+        <div class="dn-step-img-wrap">
+            <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80" alt="Phát triển hệ thống" class="dn-reveal-left" />
+        </div>
+        <div class="dn-step-content">
+            <div class="dn-step-label dn-reveal-right">Bước 2</div>
+            <h3 class="dn-step-title dn-reveal-right delay-1">
+                Chúng tôi sử dụng khoản đóng góp để nâng cấp hệ thống bản đồ, cải tiến các tính năng cảnh báo an ninh cho cộng đồng
+            </h3>
+        </div>
+    </div>
+
+    <!-- Bước 3 -->
+    <div class="dn-step dn-step-bg-light">
+        <div class="dn-step-content">
+            <div class="dn-step-label dn-reveal-left">Bước 3</div>
+            <h3 class="dn-step-title dn-reveal-left delay-1">
+                Chúng tôi chia sẻ với bạn thông tin cập nhật về những thành quả đạt được và tác động tích cực đến cộng đồng
+            </h3>
+        </div>
+        <div class="dn-step-img-wrap">
+            <img src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80" alt="Tác động cộng đồng" class="dn-reveal-right" />
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 4: Methods ═══════════ -->
+    <section class="dn-methods-section">
+        <div class="dn-methods-inner">
+            <div class="dn-methods-head">
+                <div class="dn-how-tag dn-reveal">Hình thức đóng góp</div>
+                <h2 class="dn-reveal delay-1">Các kênh tiếp nhận quyên góp</h2>
+            </div>
+            <div class="dn-method-grid">
+                <div class="dn-method-card dn-reveal">
+                    <div class="dn-method-icon">
+                        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <h4>Chuyển khoản Ngân hàng</h4>
+                    <p>Ngân hàng: Vietcombank<br>STK: 1234567890<br>Chủ TK: DANANG SAFEMAP<br>Nội dung: Ho ten - Sdt - Ung ho</p>
+                </div>
+                <div class="dn-method-card dn-reveal delay-1">
+                    <div class="dn-method-icon">
+                        <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                    </div>
+                    <h4>Ví điện tử MoMo</h4>
+                    <p>SĐT: 0901234567<br>Nội dung chuyển tiền:<br>Ung ho DaNang SafeMap</p>
+                </div>
+                <div class="dn-method-card dn-reveal delay-2">
+                    <div class="dn-method-icon">
+                        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    </div>
+                    <h4>Tài trợ Doanh nghiệp</h4>
+                    <p>Liên hệ qua email:<br>contact&#64;danangsafemap.vn<br>để thảo luận hợp tác tài trợ</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ SECTION 5: CTA ═══════════ -->
+    <section class="dn-cta">
+        <div class="dn-cta-bg"></div>
+        <div class="dn-cta-overlay"></div>
+        <h2 class="dn-reveal">Sẵn sàng chung tay vì cộng đồng?</h2>
+        <p class="dn-reveal delay-1">Mỗi khoản đóng góp đều tạo ra sự khác biệt. Hãy cùng nhau xây dựng Đà Nẵng an toàn hơn cho mọi người.</p>
+        <a href="#" class="dn-cta-btn dn-reveal delay-2" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+            <svg viewBox="0 0 24 24"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+            Quyên góp ngay
+        </a>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    @await Html.PartialAsync("_SiteFooter")
+
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // ── Scroll-reveal: fly-up / slide animation on scroll ──
+    var reveals = document.querySelectorAll('.dn-reveal, .dn-reveal-left, .dn-reveal-right, .dn-reveal-scale');
+
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.12,
+        rootMargin: '0px 0px -50px 0px'
+    });
+
+    reveals.forEach(function (el) {
+        observer.observe(el);
+    });
+});
+</script>
+}

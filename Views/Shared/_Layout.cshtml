@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - DaNang SafeMap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+</head>
+<body>
+    @Html.AntiForgeryToken()
+
+    <!-- ══════════ NAVBAR ══════════ -->
+    <nav class="dsm-nav">
+        <div class="dsm-nav__inner">
+            <!-- Brand -->
+            <a class="dsm-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                <div class="dsm-brand__icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>
+                </div>
+                <div class="dsm-brand__name">
+                    DaNang SafeMap
+                    <span>Hệ thống bản đồ an ninh</span>
+                </div>
+            </a>
+
+            <!-- Nav links -->
+            <ul class="dsm-nav__links">
+                <li>
+                    <a asp-area="" asp-controller="Home" asp-action="Index">
+                        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Trang chủ
+                    </a>
+                </li>
+                <li>
+                    <a asp-area="" asp-controller="Map" asp-action="Index">
+                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Bản đồ
+                    </a>
+                </li>
+                <li>
+                    <a asp-area="" asp-controller="Article" asp-action="Index">
+                        <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>
+                        Tin tức
+                    </a>
+                </li>
+                <li>
+                    <a asp-area="" asp-controller="MissingPerson" asp-action="Index">
+                        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        Tìm người
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Right: Login button or User menu (rendered by JS) -->
+            <div class="dsm-nav__right">
+                <!-- Login button — hiện khi chưa đăng nhập -->
+                <a href="/Auth/Login" class="nav-login-btn" id="navLoginBtn" style="display:none;">
+                    Đăng Nhập
+                </a>
+
+                <!-- Bell notification — hiện khi đã đăng nhập -->
+                <div class="dsm-bell" id="dsmBell" style="display:none;">
+                    <button type="button" class="dsm-bell__btn" id="dsmBellBtn" aria-label="Thông báo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span class="dsm-bell__badge" id="dsmBellBadge" style="display:none;">0</span>
+                    </button>
+                    <div class="dsm-bell__dropdown" id="dsmBellDropdown">
+                        <div class="dsm-bell__head">
+                            <span>Thông báo</span>
+                            <button type="button" class="dsm-bell__mark" id="dsmBellMarkAll">Đánh dấu đã đọc</button>
+                        </div>
+                        <div class="dsm-bell__list" id="dsmBellList">
+                            <div class="dsm-bell__empty">Đang tải...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- User menu — hiện khi đã đăng nhập -->
+                <div class="user-menu" id="userMenu" style="display:none;">
+                    <button class="user-trigger" id="userTrigger" type="button" aria-label="Menu người dùng">
+                        <div class="user-avatar" id="userAvatar">?</div>
+                        <span class="user-name" id="userName">Người dùng</span>
+                        <svg class="user-chevron" viewBox="0 0 24 24">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="dropdown-header">
+                            <div class="dh-name" id="dropdownName">Người dùng</div>
+                            <div class="dh-email" id="dropdownEmail">-</div>
+                        </div>
+                        <a href="/User/Dashboard" class="dropdown-item">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            Dashboard của tôi
+                        </a>
+                        <a href="/Auth/Profile" class="dropdown-item">
+                            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Trang cá nhân
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <button class="dropdown-item danger" id="logoutBtn" type="button">
+                            <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            Đăng xuất
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ══════════ MAIN CONTENT ══════════ -->
+    <div class="page-content">
+        @RenderBody()
+    </div>
+
+    <script>
+    // ── Auth state from localStorage ──────────────────────────────────────
+    (function () {
+        try {
+            var raw  = localStorage.getItem('user');
+            var user = raw ? JSON.parse(raw) : null;
+
+            if (user && (user.fullName || user.email)) {
+                // Đã đăng nhập
+                var name   = user.fullName || user.email.split('@@')[0];
+                var email  = user.email || '';
+                var initials = name.charAt(0).toUpperCase();
+
+                document.getElementById('userAvatar').textContent   = initials;
+                document.getElementById('userName').textContent     = name;
+                document.getElementById('dropdownName').textContent  = name;
+                document.getElementById('dropdownEmail').textContent = email;
+
+                document.getElementById('navLoginBtn').style.display = 'none';
+                document.getElementById('userMenu').style.display    = 'flex';
+                var bellEl = document.getElementById('dsmBell');
+                if (bellEl) { bellEl.style.display = 'inline-flex'; if (window.__dsmBellInit) window.__dsmBellInit(); }
+
+                // Admin chỉ còn link Admin Dashboard; user thường không còn "Quản lý bài viết" ở đây.
+                if (user.role === 'Admin' || user.Role === 'Admin') {
+                    var divider = document.querySelector('.dropdown-divider');
+                    if (divider) {
+                        var adminLink = document.createElement('a');
+                        adminLink.className = 'dropdown-item';
+                        adminLink.href = '/Admin/AlertModeration';
+                        adminLink.style.color = 'var(--dsm-primary, #2D6A4F)';
+                        adminLink.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg> <strong>Trang Quản Trị</strong>';
+                        divider.parentNode.insertBefore(adminLink, divider);
+                    }
+                }
+            } else {
+                // Chưa đăng nhập
+                document.getElementById('navLoginBtn').style.display = 'flex';
+                document.getElementById('userMenu').style.display    = 'none';
+            }
+        } catch (e) {
+            document.getElementById('navLoginBtn').style.display = 'flex';
+        }
+    })();
+
+    // ── Toggle dropdown ───────────────────────────────────────────────────
+    var trigger  = document.getElementById('userTrigger');
+    var menu     = document.getElementById('userMenu');
+    if (trigger) {
+        trigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            menu.classList.toggle('open');
+        });
+        document.addEventListener('click', function () {
+            menu.classList.remove('open');
+        });
+    }
+
+    // ── Bell notification ─────────────────────────────────────────────────
+    (function(){
+        var btn      = document.getElementById('dsmBellBtn');
+        var dropdown = document.getElementById('dsmBellDropdown');
+        var badge    = document.getElementById('dsmBellBadge');
+        var list     = document.getElementById('dsmBellList');
+        var markAll  = document.getElementById('dsmBellMarkAll');
+        if (!btn || !dropdown) return;
+
+        function fmt(n){ if (n == null) return ''; return n.createdAt || ''; }
+        function renderItems(items){
+            if (!items || !items.length){
+                list.innerHTML = '<div class="dsm-bell__empty">Chưa có thông báo nào</div>';
+                return;
+            }
+            list.innerHTML = items.map(function(n){
+                var href = n.articleId ? ('/Article/Details/' + n.articleId) : '#';
+                var cls  = 'dsm-bell__item' + (n.isRead ? '' : ' is-unread');
+                return '<a class="' + cls + '" href="' + href + '" data-id="' + n.id + '">' +
+                       '<div class="dsm-bell__item-title">' + (n.title || 'Thông báo') + '</div>' +
+                       '<div class="dsm-bell__item-body">' + (n.message || n.content || '') + '</div>' +
+                       '<div class="dsm-bell__item-meta">' + (n.createdAt || '') + '</div>' +
+                       '</a>';
+            }).join('');
+            Array.prototype.forEach.call(list.querySelectorAll('.dsm-bell__item'), function(a){
+                a.addEventListener('click', function(){
+                    var id = a.getAttribute('data-id');
+                    if (id) fetch('/Article/MarkNotificationRead/' + id, { method: 'POST' });
+                });
+            });
+        }
+        function refresh(){
+            fetch('/Article/GetNotifications').then(function(r){
+                if (!r.ok) throw new Error('unauthorized');
+                return r.json();
+            }).then(function(data){
+                var n = (data && data.unreadCount) || 0;
+                if (n > 0){ badge.textContent = n > 99 ? '99+' : n; badge.style.display = 'flex'; }
+                else { badge.style.display = 'none'; }
+                renderItems(data.items || []);
+            }).catch(function(){ /* not logged in yet */ });
+        }
+        window.__dsmBellInit = refresh;
+        // Auto-refresh ngay khi load (không cần đợi bấm nút) để hiện badge số chưa đọc.
+        try {
+            var raw = localStorage.getItem('user');
+            var u = raw ? JSON.parse(raw) : null;
+            if (u && (u.fullName || u.email)) refresh();
+        } catch (e) { /* ignore */ }
+        // Poll mỗi 60s để badge cập nhật realtime.
+        setInterval(function(){
+            try {
+                var raw = localStorage.getItem('user');
+                var u = raw ? JSON.parse(raw) : null;
+                if (u && (u.fullName || u.email)) refresh();
+            } catch (e) { /* ignore */ }
+        }, 60000);
+        btn.addEventListener('click', function(e){
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+            if (dropdown.classList.contains('open')) refresh();
+        });
+        document.addEventListener('click', function(){ dropdown.classList.remove('open'); });
+        dropdown.addEventListener('click', function(e){ e.stopPropagation(); });
+        if (markAll){
+            markAll.addEventListener('click', function(){
+                fetch('/Article/MarkAllRead', { method: 'POST' }).then(refresh);
+            });
+        }
+    })();
+
+    // ── Logout ────────────────────────────────────────────────────────────
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function () {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/Auth/Login';
+        });
+    }
+    </script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- ══════════ AGENTATION INTEGRATION ══════════ -->
+    <!-- Import Map: khai báo nguồn cho các ESM dependency -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react":            "https://esm.sh/react@18.3.1?dev",
+            "react-dom":        "https://esm.sh/react-dom@18.3.1?dev",
+            "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?dev",
+            "react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime?dev"
+        }
+    }
+    </script>
+    <script type="module">
+        import React from 'react';
+        import ReactDOM from 'react-dom/client';
+        import { Agentation } from 'https://esm.sh/agentation@3.0.2?deps=react@18.3.1,react-dom@18.3.1&dev';
+
+        console.log('[Agentation] Script module bắt đầu chạy');
+
+        // Thêm badge trạng thái
+        const badge = document.createElement('div');
+        badge.id = 'agentation-status-check';
+        badge.style.cssText = 'position:fixed;top:70px;right:20px;background:#2563eb;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;z-index:2147483647;font-family:sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.25);';
+        badge.textContent = '⏳ Đang nạp Agentation...';
+        document.body.appendChild(badge);
+
+        try {
+            // Container cho Agentation
+            const container = document.createElement('div');
+            container.id = 'agentation-root';
+            container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483646;';
+            document.body.appendChild(container);
+
+            const root = ReactDOM.createRoot(container);
+            root.render(React.createElement(Agentation, { copyToClipboard: true }));
+
+            badge.style.background = '#059669';
+            badge.textContent = '✅ Agentation sẵn sàng!';
+            console.log('[Agentation] Render thành công');
+
+            setTimeout(() => { badge.remove(); }, 5000);
+        } catch (err) {
+            badge.style.background = '#dc2626';
+            badge.textContent = '❌ ' + err.message;
+            console.error('[Agentation] Lỗi khởi tạo:', err);
+        }
+    </script>
+</body>
+</html>

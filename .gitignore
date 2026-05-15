@@ -1,0 +1,43 @@
+# ── Build & Runtime ──
+bin/
+obj/
+*.dll
+*.pdb
+*.exe
+
+# ── Visual Studio / Rider ──
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+.idea/
+
+# ── .NET Secrets & Config ──
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+
+
+# ── Uploads (file người dùng upload — không push lên git) ──
+wwwroot/uploads/
+
+# ── SQL scripts tạm ──
+migration.sql
+ClearAndSeedDaNangAlerts.sql
+
+# ── Tệp rác ──
+main
+git
+*.log
+*.tmp
+Thumbs.db
+.DS_Store
+
+# ── NuGet ──
+*.nupkg
+packages/
+project.lock.json
+
+# ── Test artifacts ──
+TestResults/

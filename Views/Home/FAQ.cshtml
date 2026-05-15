@@ -1,0 +1,163 @@
+@{
+    ViewData["Title"] = "Câu hỏi thường gặp";
+}
+
+<div class="sp-page">
+
+    <!-- Hero -->
+    <div class="sp-hero">
+        <h1>Câu hỏi thường gặp</h1>
+        <p>Giải đáp nhanh những thắc mắc phổ biến khi sử dụng DaNang SafeMap</p>
+    </div>
+
+    <!-- FAQ Categories -->
+    <div class="sp-sections sp-sections--wide">
+        <div class="sp-faq-grid">
+            <!-- Left Column: 5 items -->
+            <div class="sp-faq-col">
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        DaNang SafeMap là gì?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>DaNang SafeMap là hệ thống bản đồ số cảnh báo an ninh đô thị do nhóm sinh viên Đại học Đà Nẵng phát triển trong khuôn khổ đồ án PBL3. Hệ thống tích hợp dữ liệu không gian đô thị, cho phép người dân theo dõi tình hình an ninh, đọc tin tức, tìm kiếm người thất lạc và báo cáo sự cố trên địa bàn thành phố.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Hệ thống có hoạt động trên điện thoại không?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Có. DaNang SafeMap được thiết kế responsive, tương thích với mọi trình duyệt trên điện thoại (Chrome, Safari, Firefox). Bạn chỉ cần mở trình duyệt và truy cập trang web. Hiện tại chưa có ứng dụng riêng trên App Store hay Google Play.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Dữ liệu trên bản đồ được cập nhật như thế nào?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Dữ liệu sự cố đến từ hai nguồn: báo cáo trực tiếp của người dùng và cập nhật từ đội ngũ quản trị. Các điểm đánh dấu được phân loại theo mức độ (nguy hiểm, cảnh báo, thông tin) và có thời gian hiển thị giới hạn tùy tính chất sự việc.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Tôi có cần đăng ký tài khoản để sử dụng không?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Không bắt buộc. Bạn có thể xem bản đồ và đọc tin tức mà không cần đăng nhập. Tuy nhiên, để đăng bài viết, báo cáo sự cố hoặc nhận thông báo, bạn cần tạo tài khoản miễn phí.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Đăng ký tài khoản có mất phí không?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Hoàn toàn miễn phí. DaNang SafeMap không thu bất kỳ phí nào. Bạn chỉ cần cung cấp họ tên, email và đặt mật khẩu.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: 5 items -->
+            <div class="sp-faq-col">
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Tôi quên mật khẩu thì phải làm sao?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Hiện tại hệ thống chưa hỗ trợ tự khôi phục mật khẩu qua email. Vui lòng liên hệ quản trị viên qua <strong>contact@danangsafemap.vn</strong> kèm họ tên và email đã đăng ký để được hỗ trợ đặt lại mật khẩu.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Bài viết tôi đăng có xuất hiện ngay không?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Không. Tất cả bài viết do người dùng gửi đều cần quản trị viên duyệt trước khi hiển thị công khai. Thời gian duyệt thường từ vài giờ đến 1 ngày. Bạn có thể kiểm tra trạng thái tại mục "Thông báo" trên thanh điều hướng.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Tôi có thể đóng góp dữ liệu cho bản đồ không?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Có. Sau khi đăng nhập, bạn có thể gửi báo cáo sự cố. Thông tin sẽ được quản trị viên xác minh trước khi đưa lên bản đồ. Mọi đóng góp đều giúp cộng đồng có thêm thông tin an ninh kịp thời.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Tôi muốn báo cáo thông tin sai lệch thì liên hệ ai?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Gửi phản hồi qua <strong>contact@danangsafemap.vn</strong>. Mô tả cụ thể nội dung cần xử lý kèm đường dẫn bài viết hoặc sự cố liên quan. Chúng tôi sẽ xem xét trong vòng 24 giờ.</p>
+                    </div>
+                </div>
+
+                <div class="sp-accordion">
+                    <button class="sp-accordion__btn" type="button">
+                        Làm thế nào để tìm kiếm người thất lạc?
+                        <span class="sp-accordion__icon">+</span>
+                    </button>
+                    <div class="sp-accordion__panel">
+                        <p>Bạn truy cập vào mục <strong>Tìm người</strong> trên thanh điều hướng. Tại đây, bạn có thể xem các hồ sơ đang được tìm kiếm, lọc theo thời gian hoặc khu vực, và đăng tin báo mất người thân hoàn toàn miễn phí.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Section Redesigned -->
+        <div class="sp-contact-modern">
+            <div class="sp-contact-modern__image">
+                <img src="~/images/faq-illustration.png" alt="Hỗ trợ" />
+            </div>
+            <div class="sp-contact-modern__content">
+                <span class="sp-contact-modern__tag">Cần thêm trợ giúp?</span>
+                <h3>Đừng ngần ngại liên hệ với chúng tôi để biết thêm thông tin.</h3>
+                <p>Đội ngũ hỗ trợ của DaNang SafeMap luôn sẵn sàng lắng nghe và giải đáp các thắc mắc của bạn. Vui lòng liên hệ trực tiếp qua email để nhận được phản hồi nhanh nhất trong vòng 24 giờ làm việc.</p>
+                <a href="mailto:contact@danangsafemap.vn" class="btn-contact-green">
+                    Liên hệ
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    @await Html.PartialAsync("_SiteFooter")
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.sp-accordion__btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var accordion = btn.parentElement;
+                var isOpen = accordion.classList.contains('is-open');
+
+                // Close all in grid
+                var grid = accordion.closest('.sp-faq-grid');
+                if (grid) {
+                    grid.querySelectorAll('.sp-accordion.is-open').forEach(function (el) {
+                        el.classList.remove('is-open');
+                    });
+                }
+
+                // Toggle current
+                if (!isOpen) accordion.classList.add('is-open');
+            });
+        });
+    </script>
+}
