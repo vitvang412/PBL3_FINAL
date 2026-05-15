@@ -26,6 +26,12 @@ namespace DaNangSafeMap.Models.Entities
         [MaxLength(50)]
         public string NotificationType { get; set; } = string.Empty;
 
+        [MaxLength(20)]
+        public string Type { get; set; } = "";   // "clue" | "chat"
+
+        [MaxLength(500)]
+        public string? Link { get; set; }        // Đường dẫn khi click vào
+
         public bool IsRead { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;

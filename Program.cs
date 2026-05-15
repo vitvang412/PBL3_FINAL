@@ -40,13 +40,20 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<AlertLifecycleRuntimeSettings>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 builder.Services.AddScoped<IArticleService, ArticleService>();
+builder.Services.AddScoped<IMissingPersonService, MissingPersonService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<MpChatService>();
+builder.Services.AddScoped<ClueService>();
+builder.Services.AddScoped<NotificationService>();
 builder.Services.AddHostedService<AlertLifecycleWorker>();
 
 // ── 4. Cấu hình Authentication (JWT + Google + Cookie) ──
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    // Dùng JWT làm scheme mặc định để [Authorize] đọc jwtToken cookie
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme       = CookieAuthenticationDefaults.AuthenticationScheme;
 })
 .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
 {
@@ -71,10 +78,32 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
+            var authHeader = context.Request.Headers.Authorization.ToString();
+            if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.CompletedTask;
+            }
+
+            // Đọc JWT từ cookie jwtToken (được set bởi login JS) khi request không gửi Bearer token.
             var token = context.Request.Cookies["jwtToken"];
             if (!string.IsNullOrEmpty(token))
             {
                 context.Token = token;
+            }
+            return Task.CompletedTask;
+        },
+        // Khi JWT không hợp lệ → redirect về trang login (thay vì 401 JSON)
+        OnChallenge = context =>
+        {
+            if (!context.Response.HasStarted)
+            {
+                context.HandleResponse();
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+                context.Response.Redirect("/Auth/Login");
             }
             return Task.CompletedTask;
         }
@@ -91,6 +120,31 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddControllers(); // Cho API Controllers
 
 var app = builder.Build();
+
+// ── Auto-patch DB schema: thêm cột còn thiếu vào Notifications ──
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    try
+    {
+        // Thêm các cột còn thiếu (IF NOT EXISTS → an toàn nếu đã có)
+        var sql = @"
+            ALTER TABLE Notifications
+                ADD COLUMN IF NOT EXISTS Link            VARCHAR(500)   NULL,
+                ADD COLUMN IF NOT EXISTS Type            VARCHAR(20)    NOT NULL DEFAULT '',
+                ADD COLUMN IF NOT EXISTS ArticleId       INT            NULL,
+                ADD COLUMN IF NOT EXISTS NotificationType VARCHAR(50)   NOT NULL DEFAULT 'SYSTEM';
+
+            ALTER TABLE clues
+                MODIFY COLUMN UserId INT NULL;";
+        db.Database.ExecuteSqlRaw(sql);
+    }
+    catch (Exception ex)
+    {
+        // Log nhưng không crash app — có thể đã tồn tại
+        Console.WriteLine($"[DB patch] {ex.Message}");
+    }
+}
 
 // ── 6. Cấu hình Pipeline ──
 if (!app.Environment.IsDevelopment())

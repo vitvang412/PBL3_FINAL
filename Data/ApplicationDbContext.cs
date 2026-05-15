@@ -13,6 +13,13 @@ namespace DaNangSafeMap.Data
         // ── Bảng Users (đã có) ──
         public DbSet<User> Users { get; set; }
 
+        // ── Các bảng cho MissingPerson, Chat, Report ──
+        public DbSet<MissingPerson> MissingPersons { get; set; }
+        public DbSet<Clue> Clues { get; set; }
+        public DbSet<ChatRoom> ChatRooms { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<Report> Reports { get; set; }
+
         // ── Bảng Alert (MỚI) ──
         public DbSet<AlertCategory> AlertCategories { get; set; }
         public DbSet<AlertType> AlertTypes { get; set; }

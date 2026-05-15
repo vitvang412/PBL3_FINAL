@@ -1,0 +1,789 @@
+@model DaNangSafeMap.Models.ViewModels.MissingPerson.MissingPersonIndexViewModel
+@{
+    ViewData["Title"] = "Tìm Người Mất Tích";
+
+    string GetDesc(string? desc, string key) {
+        if (string.IsNullOrEmpty(desc)) return "";
+        var parts = desc.Split('|');
+        foreach (var p in parts) {
+            if (p.StartsWith(key + ":")) return p.Substring(key.Length + 1);
+        }
+        return "";
+    }
+    string TimeAgo(DateTime dt) {
+        var diff = DateTime.Now - dt;
+        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes} phút trước";
+        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours} giờ trước";
+        return $"{(int)diff.TotalDays} ngày trước";
+    }
+    bool IsNear72h(DateTime dt) {
+        var h = (DateTime.Now - dt).TotalHours;
+        return h >= 48 && h <= 72;
+    }
+    bool IsOver72h(DateTime dt) {
+        return (DateTime.Now - dt).TotalHours > 72;
+    }
+}
+
+<link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+<style>
+/* ===== STATS WITH ICONS ===== */
+.mp-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+/* Stat card clickable */
+.mp-stat--clickable {
+    cursor: pointer;
+    user-select: none;
+}
+.mp-stat--clickable:hover {
+    border-color: #0d9488;
+}
+.mp-stat--clickable.active {
+    border-color: #0d9488;
+}
+
+/* ===== NEW FILTER PANEL GRID ===== */
+.mp-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    align-items: end;
+}
+.mp-filter-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.mp-filter-col-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.3px;
+}
+.mp-filter-col select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+    appearance: auto;
+}
+.mp-filter-col select:focus { border-color: #111827; }
+.mp-status-btns {
+    display: flex;
+    gap: 8px;
+}
+.mp-status-btn {
+    flex: 1;
+    padding: 9px 0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    border: 1.5px solid #e5e7eb;
+    background: #fff;
+    color: #374151;
+}
+.mp-status-btn:hover { border-color: #9ca3af; }
+.mp-status-btn.active--searching {
+    background: #fff1f2;
+    border-color: #ef4444;
+    color: #ef4444;
+}
+.mp-status-btn.active--found {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    color: #22c55e;
+}
+.mp-filter-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+}
+.mp-stat {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    min-width: unset;
+    box-shadow: none;
+    transition: border-color 0.2s;
+}
+.mp-stat:hover { box-shadow: none; }
+.mp-stat__info { display: flex; flex-direction: column; }
+.mp-stat__num {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
+    margin-bottom: 6px;
+}
+.mp-stat__label {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-weight: 500;
+}
+.mp-stat__icon {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+.mp-stat__icon--orange { background: #fef2f2; border-radius: 50%; }
+.mp-stat__icon--blue   { background: #eff6ff; border-radius: 10px; }
+.mp-stat__icon--green  { background: #f0fdf4; border-radius: 50%; }
+.mp-stat__icon--amber  { background: #fffbeb; }
+
+/* ===== SEARCH & FILTER BAR ===== */
+.mp-search-section {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 16px rgba(0,0,0,.08);
+    padding: 20px 24px;
+    margin-bottom: 20px;
+}
+.mp-filter-panel {
+    display: none;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #f3f4f6;
+    animation: slideDown 0.2s ease;
+}
+.mp-filter-panel.open { display: block; }
+@@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.mp-search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.mp-search-input-wrap {
+    position: relative;
+    flex: 1;
+}
+.mp-search-input-wrap svg {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px; height: 18px;
+    stroke: #9ca3af; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+.mp-search-input {
+    width: 100%;
+    padding: 11px 16px 11px 44px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color .2s;
+    background: #f9fafb;
+    box-sizing: border-box;
+}
+.mp-search-input:focus { border-color: #0d9488; background: #fff; }
+.mp-search-btn {
+    padding: 11px 22px;
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+    white-space: nowrap;
+    display: none;
+}
+.mp-search-btn:hover { background: #dc2626; }
+
+/* Nút Bộ lọc */
+.mp-filter-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.mp-filter-toggle-btn:hover { background: #1f2937; }
+.mp-filter-toggle-btn svg {
+    width: 16px; height: 16px;
+    stroke: #fff; fill: none;
+    stroke-width: 2; stroke-linecap: round;
+}
+
+/* Filter row */
+.mp-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 14px;
+    align-items: center;
+}
+.mp-filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    white-space: nowrap;
+}
+.mp-filter-select {
+    padding: 7px 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f9fafb;
+    outline: none;
+    cursor: pointer;
+    transition: border-color .2s;
+}
+.mp-filter-select:focus { border-color: #ef4444; background: #fff; }
+.mp-filter-select.active { border-color: #ef4444; background: #fef2f2; color: #ef4444; font-weight: 600; }
+
+/* Sort pills */
+.mp-sort-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.mp-sort-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #e5e7eb;
+    background: #f9fafb;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    color: #374151;
+}
+.mp-sort-pill:hover { border-color: #ef4444; color: #ef4444; }
+.mp-sort-pill.active { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* Reset link */
+.mp-reset-link {
+    font-size: 13px;
+    color: #9ca3af;
+    text-decoration: none;
+    margin-left: auto;
+    transition: color .2s;
+}
+.mp-reset-link:hover { color: #ef4444; }
+
+/* Result info */
+.mp-result-info {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mp-result-info strong { color: #111827; }
+
+/* 72h badge on card */
+.mp-card__badge-72h {
+    position: absolute;
+    top: 8px; left: 8px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: flex; align-items: center; gap: 4px;
+    z-index: 2;
+    animation: pulse72 1.5s infinite;
+}
+@@keyframes pulse72 {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .6; }
+}
+
+/* Near-me sort btn */
+#btnNearMe {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #e5e7eb;
+    background: #f9fafb;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+    color: #374151;
+}
+#btnNearMe:hover { border-color: #3b82f6; color: #3b82f6; }
+#btnNearMe.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* Stat badge 72h */
+.mp-stat--alert .mp-stat__num { color: #f59e0b; }
+
+@@media (max-width: 640px) {
+    .mp-search-row { flex-direction: column; }
+    .mp-search-btn { width: 100%; }
+    .mp-filter-row { gap: 8px; }
+}
+</style>
+
+<div class="mp-page">
+    <!-- Header -->
+    <div class="mp-header">
+        <div class="mp-header__inner">
+            <div class="mp-header__text">
+                <h1>Tìm Người Mất Tích</h1>
+                <p>Cùng nhau cùng chung tay tìm kiếm người thân, Mỗi thông tin đều có ích, có thể thay đổi số mệnh của một người khác.</p>
+                <p class="mp-header__trust">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Thông tin được bảo mật và xác thực bởi hệ thống
+                </p>
+            </div>
+            <a href="/MissingPerson/Create" class="mp-btn-post" id="btnCreatePost">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Đăng tin tìm người
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="mp-stats" id="mpStats">
+        <div class="mp-stat mp-stat--clickable" id="statAll" onclick="filterByStat('all')">
+            <div class="mp-stat__info">
+                <span class="mp-stat__num">@Model.TotalCount</span>
+                <span class="mp-stat__label">Tổng bài đăng</span>
+            </div>
+            <div class="mp-stat__icon mp-stat__icon--blue">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1e6fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+        </div>
+        <div class="mp-stat mp-stat--clickable" id="statSearching" onclick="filterByStat('searching')">
+            <div class="mp-stat__info">
+                <span class="mp-stat__num">@Model.SearchingCount</span>
+                <span class="mp-stat__label">Đang tìm kiếm</span>
+            </div>
+            <div class="mp-stat__icon mp-stat__icon--orange">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#b91c1c" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+        </div>
+        <div class="mp-stat mp-stat--clickable" id="statFound" onclick="filterByStat('found')">
+            <div class="mp-stat__info">
+                <span class="mp-stat__num">@Model.FoundCount</span>
+                <span class="mp-stat__label">Đã tìm thấy</span>
+            </div>
+            <div class="mp-stat__icon mp-stat__icon--green">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#0d6e4e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+        </div>
+        <!-- Bài của tôi (hiện khi đăng nhập) -->
+        <div class="mp-stat mp-stat--clickable" id="statMyPosts" style="display:none;" onclick="toggleMyPostsStat()" data-server-count="@Model.MyPostsCount">
+            <div class="mp-stat__info">
+                <span class="mp-stat__num" id="myPostsCount">0</span>
+                <span class="mp-stat__label">Bài của tôi</span>
+            </div>
+            <div class="mp-stat__icon" style="background:#f0fdfa; border-radius:50%;">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/></svg>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="mp-alert mp-alert--success"> @TempData["Success"]</div>
+    }
+
+    <!-- ===== SEARCH & FILTER SECTION ===== -->
+    <div class="mp-search-section">
+        <form method="get" action="/MissingPerson" id="searchForm">
+            <!-- Search bar + filter toggle -->
+            <div class="mp-search-row">
+                <div class="mp-search-input-wrap">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text"
+                           name="keyword"
+                           id="searchKeyword"
+                           class="mp-search-input"
+                           placeholder="Tìm theo tên người hoặc địa điểm..."
+                           value="@Model.Keyword"
+                           autocomplete="off" />
+                </div>
+                <button type="button" class="mp-filter-toggle-btn" id="btnToggleFilter" onclick="toggleFilter()">
+                    <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                    Bộ lọc
+                </button>
+            </div>
+
+            <!-- Filter panel (ẩn mặc định) -->
+            <div class="mp-filter-panel @((!string.IsNullOrEmpty(Model.AgeGroup) || !string.IsNullOrEmpty(Model.Gender) || Model.DaysAgo.HasValue || Model.SortBy != "newest") ? "open" : "")" id="filterPanel">
+                <div class="mp-filter-grid" style="grid-template-columns: repeat(4, 1fr); align-items: end; gap: 10px;">
+                    <!-- Lọc (sắp xếp) -->
+                    <div class="mp-filter-col">
+                        <span class="mp-filter-col-label">Lọc:</span>
+                        <select id="sortSelect" onchange="setSortAndSubmit(this.value)">
+                            <option value="newest" selected="@(Model.SortBy == "newest" ? "selected" : null)">Mới nhất</option>
+                            <option value="near72h" selected="@(Model.SortBy == "near72h" ? "selected" : null)">Sắp đủ 72h</option>
+                        </select>
+                    </div>
+
+                    <!-- Giới tính -->
+                    <div class="mp-filter-col">
+                        <span class="mp-filter-col-label">Giới tính:</span>
+                        <select name="gender" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="Nam"  selected="@(Model.Gender == "Nam"  ? "selected" : null)">Nam</option>
+                            <option value="Nữ"   selected="@(Model.Gender == "Nữ"   ? "selected" : null)">Nữ</option>
+                            <option value="Khác" selected="@(Model.Gender == "Khác" ? "selected" : null)">Khác</option>
+                        </select>
+                    </div>
+
+                    <!-- Độ tuổi -->
+                    <div class="mp-filter-col">
+                        <span class="mp-filter-col-label">Độ tuổi:</span>
+                        <select name="ageGroup" onchange="this.form.submit()">
+                            <option value="">Tất cả</option>
+                            <option value="child"   selected="@(Model.AgeGroup == "child"   ? "selected" : null)">Trẻ em (&lt;18)</option>
+                            <option value="adult"   selected="@(Model.AgeGroup == "adult"   ? "selected" : null)">Người lớn (18-59)</option>
+                            <option value="elderly" selected="@(Model.AgeGroup == "elderly" ? "selected" : null)">Cao tuổi (60+)</option>
+                        </select>
+                    </div>
+
+                    <!-- Thời gian -->
+                    <div class="mp-filter-col">
+                        <span class="mp-filter-col-label">Thời gian:</span>
+                        <select name="daysAgo" onchange="this.form.submit()">
+                            <option value="">Mọi thời gian</option>
+                            <option value="1"  selected="@(Model.DaysAgo == 1  ? "selected" : null)">Hôm nay</option>
+                            <option value="3"  selected="@(Model.DaysAgo == 3  ? "selected" : null)">3 ngày qua</option>
+                            <option value="7"  selected="@(Model.DaysAgo == 7  ? "selected" : null)">7 ngày qua</option>
+                            <option value="30" selected="@(Model.DaysAgo == 30 ? "selected" : null)">30 ngày qua</option>
+                        </select>
+                    </div>
+                </div>
+
+                @{
+                    var hasFilter = !string.IsNullOrEmpty(Model.Keyword)
+                        || !string.IsNullOrEmpty(Model.AgeGroup)
+                        || !string.IsNullOrEmpty(Model.Gender)
+                        || Model.DaysAgo.HasValue
+                        || Model.SortBy != "newest";
+                }
+                @if (hasFilter)
+                {
+                    <div style="margin-top:8px; text-align:right;">
+                        <a href="/MissingPerson" class="mp-reset-link">Xoá bộ lọc</a>
+                    </div>
+                }
+            </div>
+
+            <input type="hidden" name="sortBy" id="hiddenSortBy" value="@Model.SortBy" />
+        </form>
+    </div>
+
+    <!-- Result count -->
+    <div class="mp-result-info">
+        <strong id="resultCountDisplay">@Model.Items.Count</strong> kết quả
+        @if (!string.IsNullOrEmpty(Model.Keyword))
+        {
+            <span>cho "<em>@Model.Keyword</em>"</span>
+        }
+        @if (Model.SortBy == "near72h")
+        {
+            <span style="color:#f59e0b; font-weight:600;">Uu tien viec sap den moc 72h</span>
+        }
+    </div>
+
+    <!-- Grid -->
+    @if (!Model.Items.Any())
+    {
+        <div class="mp-empty">
+            <div class="mp-empty__icon"></div>
+            <h3>Không tìm thấy kết quả</h3>
+            <p>Thử thay đổi từ khóa hoặc bộ lọc</p>
+            <a href="/MissingPerson" class="mp-btn-post">Xem tất cả</a>
+        </div>
+    }
+    else
+    {
+        <div class="mp-grid" id="mpGrid">
+            @foreach (var p in Model.Items)
+            {
+                var age = GetDesc(p.Description, "TUOI");
+                var gender = GetDesc(p.Description, "GIOITINH");
+                var contact = GetDesc(p.Description, "LIENHE");
+                var statusClass = p.Status == 2 ? "found" : "searching";
+                var statusText  = p.Status == 2 ? "Đã tìm thấy" : "Đang tìm kiếm";
+                var hoursElapsed = (DateTime.Now - p.CreatedAt).TotalHours;
+
+                <a href="/MissingPerson/Details/@p.Id" class="mp-card"
+                   data-status="@p.Status"
+                   data-userid="@p.UserId"
+                   data-lat="@(p.Latitude?.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                   data-lng="@(p.Longitude?.ToString("F6", System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                   data-created="@p.CreatedAt.ToString("o")">
+
+                    <!-- Ảnh -->
+                    <div class="mp-card__photo">
+                        @if (!string.IsNullOrEmpty(p.ImageUrl))
+                        {
+                            <img src="@p.ImageUrl" alt="@p.FullName" loading="lazy" />
+                        }
+                        else
+                        {
+                            <div class="mp-card__no-photo">?</div>
+                        }
+                        <span class="mp-card__status @statusClass">@statusText</span>
+
+                        @* Badge 72h *@
+                        @if (p.Status == 1 && IsNear72h(p.CreatedAt))
+                        {
+                            <div class="mp-card__badge-72h">Sap 72h</div>
+                        }
+                        else if (p.Status == 1 && IsOver72h(p.CreatedAt))
+                        {
+                            <div class="mp-card__badge-72h" style="background:#ef4444;">Qua 72h</div>
+                        }
+                    </div>
+
+                    <!-- Thông tin -->
+                    <div class="mp-card__body">
+                        <h3 class="mp-card__name">@p.FullName</h3>
+                        <div class="mp-card__meta">
+                            @if (!string.IsNullOrEmpty(age))   { <span>@age tuổi</span> }
+                            @if (!string.IsNullOrEmpty(gender)) { <span>@gender</span> }
+                        </div>
+                        <div class="mp-card__location">
+                            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            @p.LastSeenLocation
+                        </div>
+                        <div class="mp-card__time"> 
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            @TimeAgo(p.CreatedAt)
+                        </div>
+                        @if (!string.IsNullOrEmpty(contact))
+                        {
+                            <div class="mp-card__contact"> 
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                @contact
+                            </div>
+                        }
+
+                        @* Thanh tiến trình 72h *@
+                        @if (p.Status == 1)
+                        {
+                            var pct = Math.Min((int)(hoursElapsed / 72 * 100), 100);
+                            var barColor = pct >= 100 ? "#ef4444" : pct >= 66 ? "#f59e0b" : "#10b981";
+                            <div style="margin-top:12px; padding-top:10px; border-top: 1px solid #f1f5f9;">
+                                <div style="display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:5px;">
+                                    <span>Lạc @((int)hoursElapsed)h</span>
+                                    <span>Mốc vàng 72h</span>
+                                </div>
+                                <div style="background:#f1f5f9;border-radius:10px;height:4px;overflow:hidden;">
+                                    <div style="width:@(pct)%;height:100%;background:@barColor;border-radius:10px;transition:width 1s cubic-bezier(0.4, 0, 0.2, 1);"></div>
+                                </div>
+                            </div>
+                        }
+                        <div class="mp-card__footer" style="margin-top: 15px;">
+                            <div class="mp-card__cta">
+                                Xem chi tiết
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 5px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                </a>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+// ======= Toggle filter panel =======
+function toggleFilter() {
+    const panel = document.getElementById('filterPanel');
+    const btn = document.getElementById('btnToggleFilter');
+    panel.classList.toggle('open');
+    btn.style.background = panel.classList.contains('open') ? '#374151' : '#111827';
+}
+
+// ======= Set sort và submit form =======
+function setSortAndSubmit(sort) {
+    document.getElementById('hiddenSortBy').value = sort;
+    document.getElementById('searchForm').submit();
+}
+
+// ======= Kiểm tra đăng nhập khi bấm "Đăng tin" =======
+document.getElementById('btnCreatePost')?.addEventListener('click', function(e) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        e.preventDefault();
+        alert('Bạn cần đăng nhập để đăng bài tìm người!');
+        window.location.href = '/Auth/Login';
+    }
+});
+
+// ======= Lọc Bài của tôi qua thẻ stat =======
+let myPostsActive = false;
+let currentUserId = null;
+let activeStatFilter = null; // null | 'searching' | 'found'
+
+function filterByStat(type) {
+    if (type === 'all') {
+        activeStatFilter = null;
+        myPostsActive = false;
+    } else if (type === 'searching' || type === 'found') {
+        // Toggle: bấm lại cùng loại thì tắt
+        activeStatFilter = (activeStatFilter === type) ? null : type;
+        myPostsActive = false;
+    }
+    // Cập nhật active class
+    ['statAll', 'statSearching', 'statFound', 'statMyPosts'].forEach(id => {
+        document.getElementById(id)?.classList.remove('active');
+    });
+    if (activeStatFilter === 'searching') document.getElementById('statSearching')?.classList.add('active');
+    else if (activeStatFilter === 'found') document.getElementById('statFound')?.classList.add('active');
+    applyClientFilters();
+}
+
+function toggleMyPostsStat() {
+    myPostsActive = !myPostsActive;
+    activeStatFilter = null; // reset status filter khi chọn bài của tôi
+    ['statAll','statSearching','statFound'].forEach(id => {
+        document.getElementById(id)?.classList.remove('active');
+    });
+    document.getElementById('statMyPosts')?.classList.toggle('active', myPostsActive);
+    applyClientFilters();
+}
+
+function applyClientFilters() {
+    const cards = document.querySelectorAll('.mp-card');
+    let visibleCount = 0;
+    cards.forEach(c => {
+        let show = true;
+        const status = parseInt(c.getAttribute('data-status'));
+        const userId = c.getAttribute('data-userid');
+
+        if (myPostsActive && currentUserId) {
+            if (userId != currentUserId) show = false;
+        }
+        if (activeStatFilter === 'searching' && status !== 1) show = false;
+        if (activeStatFilter === 'found' && status !== 2) show = false;
+
+        c.style.display = show ? 'block' : 'none';
+        if (show) visibleCount++;
+    });
+
+    const countDisplay = document.getElementById('resultCountDisplay');
+    if (countDisplay) {
+        countDisplay.textContent = visibleCount;
+    }
+}
+
+// ======= Khởi tạo thẻ Bài của tôi =======
+(async function initMyPostsStatCard() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const token = localStorage.getItem('token');
+        console.log('[MyPosts] user:', user, 'token:', token ? 'có' : 'không');
+        const userId = user && (user.id || user.Id);
+        if (userId) {
+            currentUserId = String(userId);
+            const statEl = document.getElementById('statMyPosts');
+            const countEl = document.getElementById('myPostsCount');
+            if (statEl && countEl) {
+                let count = 0;
+                if (token) {
+                    try {
+                        const res = await fetch('/api/missing-person/my-count', {
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        console.log('[MyPosts] API status:', res.status);
+                        if (res.ok) {
+                            const data = await res.json();
+                            console.log('[MyPosts] API data:', data);
+                            count = data.count || 0;
+                        } else {
+                            console.log('[MyPosts] API error:', res.status, await res.text());
+                        }
+                    } catch(e) { console.error('[MyPosts] fetch error:', e); }
+                }
+                countEl.textContent = count;
+                statEl.style.display = 'flex';
+            }
+        }
+    } catch(e) { console.error('[MyPosts] init error:', e); }
+})();
+
+// ======= Sắp xếp theo gần vị trí của tôi (Client-side) =======
+document.getElementById('btnNearMe')?.addEventListener('click', function() {
+    const btn = this;
+    if (!navigator.geolocation) {
+        alert('Trình duyệt của bạn không hỗ trợ định vị.');
+        return;
+    }
+    btn.textContent = 'Đang lấy vị trí...';
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            const myLat = pos.coords.latitude;
+            const myLng = pos.coords.longitude;
+            btn.classList.add('active');
+            btn.textContent = 'Gần vị trí tôi (Đã bật)';
+
+            // Tính khoảng cách Haversine
+            function haversine(lat1, lng1, lat2, lng2) {
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLng = (lng2 - lng1) * Math.PI / 180;
+                const a = Math.sin(dLat/2)**2 +
+                          Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) *
+                          Math.sin(dLng/2)**2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            }
+
+            const grid = document.getElementById('mpGrid');
+            if (!grid) return;
+            const cards = Array.from(grid.querySelectorAll('.mp-card'));
+
+            // Gắn khoảng cách tạm thời
+            cards.forEach(card => {
+                const lat = parseFloat(card.dataset.lat);
+                const lng = parseFloat(card.dataset.lng);
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    card._dist = haversine(myLat, myLng, lat, lng);
+                } else {
+                    card._dist = 9999; // Không có tọa độ → xuống cuối
+                }
+            });
+
+            // Sắp xếp DOM
+            cards.sort((a, b) => a._dist - b._dist);
+            cards.forEach(c => grid.appendChild(c));
+        },
+        function() {
+            alert('Không thể lấy vị trí. Hãy cho phép trình duyệt truy cập vị trí của bạn.');
+            btn.textContent = 'Gần vị trí tôi';
+        }
+    );
+});
+</script>
+}

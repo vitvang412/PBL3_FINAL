@@ -553,14 +553,13 @@ namespace DaNangSafeMap.Controllers
                     Type = n.NotificationType,
                     isRead = n.IsRead,
                     n.ArticleId,
-                    createdAt = n.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    createdAt = n.CreatedAt.ToString("o")  // ISO 8601 — JS can parse this correctly
                 })
             });
         }
 
         // POST /Article/MarkNotificationRead/{id}
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkNotificationRead(int id)
         {
             var userId = GetCurrentUserId();
@@ -571,7 +570,6 @@ namespace DaNangSafeMap.Controllers
 
         // POST /Article/MarkAllRead
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAllRead()
         {
             var userId = GetCurrentUserId();

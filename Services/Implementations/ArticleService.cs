@@ -606,6 +606,8 @@ namespace DaNangSafeMap.Services.Implementations
                 Title = "Bài viết đã được duyệt ✅",
                 Message = $"Bài viết \"{article.Title}\" của bạn đã được duyệt và đăng trên trang tin tức.",
                 NotificationType = "APPROVED",
+                Type = "article",
+                Link = $"/Article/Details/{articleId}",
                 IsRead = false,
                 CreatedAt = DateTime.Now
             });
@@ -633,6 +635,8 @@ namespace DaNangSafeMap.Services.Implementations
                 Title = "Bài viết bị từ chối ❌",
                 Message = $"Bài viết \"{article.Title}\" bị từ chối. Lý do: {reason}",
                 NotificationType = "REJECTED",
+                Type = "article",
+                Link = "/Article?mode=my",
                 IsRead = false,
                 CreatedAt = DateTime.Now
             });

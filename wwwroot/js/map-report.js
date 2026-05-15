@@ -1051,7 +1051,7 @@ function waitForMapReport(cb, retries = 20) {
 function openReportModal() {
     const token = localStorage.getItem('token');
     if (!token) {
-        window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
+        window.location.href = '/Auth/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
         return;
     }
     const modal = document.getElementById('gmReportModal');

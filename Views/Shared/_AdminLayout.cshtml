@@ -39,12 +39,6 @@
                         Quản lý tin tức
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="/Article/Create" class="@(ViewData["Title"]?.ToString() == "Thêm bài viết - Widget Builder" ? "active" : "")">
-                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-                        Đăng bài mới
-                    </a>
-                </li>
                 <li>
                     <a href="/Admin/AlertModeration">
                         <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
@@ -58,15 +52,15 @@
                     </a>
                 </li>
                 <li>
-                    <a href="#">
+                    <a href="/Admin/MissingPersons" class="@(ViewData["Title"]?.ToString()?.Contains("người mất") == true || ViewData["Title"]?.ToString()?.Contains("Missing") == true ? "active" : "")">
                         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                         Quản lý người lạc
                     </a>
                 </li>
                 <li>
-                    <a href="#">
+                    <a href="/Admin/Reports" class="@(ViewData["Title"]?.ToString() == "Báo cáo vi phạm" ? "active" : "")">
                         <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        Thống kê
+                        Báo cáo vi phạm
                     </a>
                 </li>
             </ul>

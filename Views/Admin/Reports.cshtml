@@ -1,0 +1,669 @@
+@using DaNangSafeMap.Models.ViewModels.Admin
+@model List<ReportAdminViewModel>
+
+@{
+    ViewData["Title"] = "Báo cáo vi phạm";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    int page       = ViewBag.Page;
+    int totalPages = ViewBag.TotalPages;
+    int totalCount = ViewBag.TotalCount;
+    string search  = ViewBag.Search ?? "";
+    string statusF = ViewBag.Status ?? "";
+}
+
+<style>
+    .report-filters {
+        background: #fff;
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        margin-bottom: 24px;
+    }
+    .report-filters form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .report-filters .form-control, .report-filters .form-select {
+        border-radius: 10px; border: 1.5px solid #e8ecf0;
+        font-size: 0.875rem; padding: 8px 14px; color: #374151;
+    }
+    .report-filters .form-control:focus, .report-filters .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79,70,229,.08);
+    }
+    .btn-search {
+        background: var(--primary); color: #fff; border: none;
+        border-radius: 10px; padding: 8px 20px;
+        font-weight: 600; font-size: 0.875rem; transition: opacity .2s;
+    }
+    .btn-search:hover { opacity: .88; color: #fff; }
+    .btn-reset {
+        background: #f3f4f6; color: #374151; border: none;
+        border-radius: 10px; padding: 8px 16px; font-size: 0.875rem; font-weight: 500;
+    }
+    .reports-table-card {
+        background: #fff; border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,.06); overflow: hidden;
+    }
+    .reports-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+    }
+    .report-card {
+        background: #fff; border-radius: 16px;
+        box-shadow: 0 2px 12px rgba(0,0,0,.06);
+        padding: 20px;
+        display: flex; flex-direction: column; gap: 14px;
+        border: 1px solid #f3f4f6;
+    }
+    .report-header {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    .report-reporter-name {
+        font-weight: 700; color: #111827; font-size: 1.05rem; line-height: 1.3;
+    }
+    .report-reporter-email {
+        font-size: .8rem; color: #9ca3af; margin-top: 2px;
+    }
+    .report-body {
+        display: flex; flex-direction: column; gap: 10px; font-size: .875rem;
+    }
+    .report-row {
+        display: flex; flex-direction: column; gap: 4px;
+    }
+    .report-label {
+        color: #6b7280; font-weight: 600; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .report-value {
+        color: #374151; font-weight: 500;
+    }
+    .report-details-box {
+        background: #f8fafc; border-radius: 8px; padding: 12px;
+        font-size: .85rem; color: #4b5563; margin-top: 4px;
+    }
+    .report-actions {
+        display: flex; gap: 8px; margin-top: auto; padding-top: 16px; border-top: 1px solid #f3f4f6;
+    }
+    .report-actions > * { flex: 1; }
+    .report-actions form { display: flex; margin: 0; }
+    .report-actions button { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px 12px; font-size: .85rem; }
+    .badge-pending   { background: #fef3c7; color: #92400e; }
+    .badge-resolved  { background: #d1fae5; color: #065f46; }
+    .badge-dismissed { background: #f3f4f6; color: #6b7280; }
+    .status-badge {
+        display: inline-block; padding: 4px 12px;
+        border-radius: 20px; font-size: .75rem; font-weight: 700; letter-spacing: .03em;
+    }
+    .reason-badge {
+        display: inline-block; background: #ede9fe; color: #5b21b6;
+        padding: 4px 10px; border-radius: 20px; font-size: .73rem; font-weight: 600;
+    }
+    .btn-resolve {
+        background: #d1fae5; color: #065f46; border: none;
+        border-radius: 8px; padding: 5px 12px; font-size: .78rem; font-weight: 600;
+        transition: background .2s; cursor: pointer;
+    }
+    .btn-resolve:hover { background: #a7f3d0; }
+    .btn-dismiss {
+        background: #f3f4f6; color: #6b7280; border: none;
+        border-radius: 8px; padding: 5px 12px; font-size: .78rem; font-weight: 600;
+        transition: background .2s; cursor: pointer;
+    }
+    .btn-dismiss:hover { background: #e5e7eb; color: #374151; }
+    .btn-view {
+        background: #ede9fe; color: #5b21b6; border: none;
+        border-radius: 8px; padding: 5px 12px; font-size: .78rem; font-weight: 600;
+        text-decoration: none; transition: background .2s;
+    }
+    .btn-view:hover { background: #ddd6fe; color: #4c1d95; }
+    .empty-state {
+        text-align: center; padding: 60px 20px; color: #9ca3af;
+    }
+    .empty-state svg { width: 56px; height: 56px; margin-bottom: 16px; stroke: #d1d5db; }
+    .empty-state h6 { font-size: 1rem; color: #6b7280; font-weight: 600; }
+    .admin-alert {
+        border-radius: 10px; padding: 12px 18px;
+        font-size: .875rem; font-weight: 500; margin-bottom: 20px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .admin-alert-success { background: #d1fae5; color: #065f46; }
+    .admin-alert-info    { background: #dbeafe; color: #1e40af; }
+    .custom-pagination { display: flex; gap: 6px; justify-content: flex-end; margin-top: 0; padding: 16px 18px; }
+    .custom-pagination a, .custom-pagination span {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 36px; height: 36px; border-radius: 8px;
+        font-size: .875rem; font-weight: 500; text-decoration: none; transition: all .15s;
+    }
+    .custom-pagination a { background: #fff; color: #374151; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .custom-pagination a:hover { background: var(--primary); color: #fff; }
+    .custom-pagination .pg-active { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(79,70,229,.3); }
+    .custom-pagination .pg-disabled { background: #f3f4f6; color: #d1d5db; cursor: default; }
+
+    /* Modal preview */
+    .preview-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(15,23,42,.55); backdrop-filter: blur(4px);
+        z-index: 9999; align-items: center; justify-content: center;
+    }
+    .preview-overlay.show { display: flex; }
+    .preview-modal {
+        background: #fff; border-radius: 20px;
+        width: 680px; max-width: 96vw; max-height: 86vh;
+        overflow-y: auto; box-shadow: 0 24px 80px rgba(0,0,0,.25);
+        animation: slideUp .22s ease;
+    }
+    @@keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+    .preview-header {
+        padding: 20px 24px 16px; border-bottom: 1px solid #f3f4f6;
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .preview-header h5 { font-size: 1.1rem; font-weight: 700; color: #111827; margin: 0; }
+    .preview-close {
+        width: 32px; height: 32px; border: none; background: #f3f4f6;
+        border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+        display: flex; align-items: center; justify-content: center;
+        color: #6b7280; flex-shrink: 0; transition: background .15s;
+    }
+    .preview-close:hover { background: #e5e7eb; color: #111827; }
+    .preview-body { padding: 20px 24px; }
+    .preview-photo {
+        width: 100%; max-height: 280px; object-fit: cover;
+        border-radius: 12px; margin-bottom: 18px;
+    }
+    .preview-photo-placeholder {
+        width: 100%; height: 160px; background: #f3f4f6;
+        border-radius: 12px; margin-bottom: 18px;
+        display: flex; align-items: center; justify-content: center;
+        color: #9ca3af; font-size: .875rem;
+    }
+    .preview-row { display: flex; gap: 8px; margin-bottom: 10px; font-size: .875rem; }
+    .preview-label { font-weight: 600; color: #374151; min-width: 130px; flex-shrink: 0; }
+    .preview-value { color: #4b5563; }
+    .preview-section-title {
+        font-size: .7rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .08em; color: #9ca3af; margin: 18px 0 10px;
+    }
+    .preview-status-badge {
+        display: inline-block; padding: 4px 12px;
+        border-radius: 20px; font-size: .75rem; font-weight: 700;
+    }
+    .status-searching  { background: #dbeafe; color: #1e40af; }
+    .status-found      { background: #d1fae5; color: #065f46; }
+    .status-closed     { background: #f3f4f6; color: #6b7280; }
+    .status-deleted    { background: #fee2e2; color: #991b1b; }
+    /* Clue items */
+    .pv-clue-item {
+        background: #f8f9fa; border: 1px solid #eef2f6; border-radius: 12px;
+        padding: 16px; margin-bottom: 12px; font-size: .85rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .pv-clue-item:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .pv-clue-reporter { font-weight: 700; color: #1e293b; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+    .pv-clue-reporter::before { content: ""; display: inline-block; width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+    .pv-clue-content { color: #475569; margin: 10px 0; line-height: 1.5; }
+    .pv-clue-detail { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+    .pv-clue-detail-item { background: #fff; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; color: #64748b; font-weight: 500; }
+    .pv-clue-meta { color: #94a3b8; font-size: .75rem; margin-top: 12px; border-top: 1px solid #f1f5f9; padding-top: 8px; display: flex; justify-content: space-between; }
+    .btn-preview {
+        background: #ede9fe; color: #5b21b6; border: none;
+        border-radius: 8px; padding: 5px 12px; font-size: .78rem; font-weight: 600;
+        cursor: pointer; transition: background .2s;
+    }
+    .btn-preview:hover { background: #ddd6fe; }
+    #previewLoadingSpinner { text-align: center; padding: 40px; color: #9ca3af; }
+</style>
+
+@if (TempData["Success"] != null)
+{
+    <div class="admin-alert admin-alert-success">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        @TempData["Success"]
+    </div>
+}
+@if (TempData["Info"] != null)
+{
+    <div class="admin-alert admin-alert-info">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        @TempData["Info"]
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h5 class="fw-bold mb-1">Danh sách báo cáo bài đăng tìm người</h5>
+        <p class="text-muted mb-0" style="font-size:.85rem;">
+            Tổng cộng <strong>@totalCount</strong> báo cáo
+        </p>
+    </div>
+</div>
+
+@* Bộ lọc *@
+<div class="report-filters">
+    <form method="get" asp-controller="Report" asp-action="Reports">
+        <input type="text" name="search" class="form-control"
+               placeholder="Tìm theo tên người mất, người báo cáo..."
+               value="@search" style="min-width:240px; flex:1;" />
+        <select name="status" class="form-select" style="max-width:180px;">
+            @{ var sel0 = statusF == "" ? "selected" : null; }
+            <option value="" selected="@sel0">Tất cả trạng thái</option>
+            @{ var sel1 = statusF == "1" ? "selected" : null; }
+            <option value="1" selected="@sel1">Chờ xử lý</option>
+            @{ var sel2 = statusF == "2" ? "selected" : null; }
+            <option value="2" selected="@sel2">Đã xử lý</option>
+            @{ var sel3 = statusF == "3" ? "selected" : null; }
+            <option value="3" selected="@sel3">Bỏ qua</option>
+        </select>
+        <button type="submit" class="btn btn-search">Tìm kiếm</button>
+        <a href="/Admin/Reports" class="btn btn-reset">Xoá bộ lọc</a>
+    </form>
+</div>
+
+@* Danh sách báo cáo dạng Card *@
+<div class="reports-container">
+    @if (!Model.Any())
+    {
+        <div class="reports-table-card">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+                    <line x1="4" y1="22" x2="4" y2="15"></line>
+                </svg>
+                <h6>Không tìm thấy báo cáo nào</h6>
+                <p style="font-size:.8rem;">Hãy thử thay đổi bộ lọc hoặc từ khoá tìm kiếm.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="reports-grid">
+            @foreach (var r in Model)
+            {
+                <div class="report-card">
+                    <div class="report-header">
+                        <div>
+                            <div class="report-reporter-name">@r.ReporterName</div>
+                            @if (r.ReporterEmail != null)
+                            {
+                                <div class="report-reporter-email">@r.ReporterEmail</div>
+                            }
+                            <div style="font-size:.75rem; color:#9ca3af; margin-top: 4px;">#@r.ReportId • @r.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                        <span class="status-badge @r.StatusBadgeClass">@r.StatusLabel</span>
+                    </div>
+
+                    <div class="report-body">
+                        <div class="report-row">
+                            <span class="report-label">Bài đăng bị báo cáo</span>
+                            <span class="report-value">
+                                @if (r.MissingPersonId > 0)
+                                {
+                                    <a href="javascript:void(0)"
+                                       onclick="openPreview(@r.MissingPersonId, '@Html.Raw(r.MissingPersonName.Replace("'", "\\'"))')"
+                                       style="color: var(--primary); text-decoration:none; font-weight: 600; cursor: pointer;">
+                                        @r.MissingPersonName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span style="font-weight: 600;">@r.MissingPersonName</span>
+                                }
+                                <span style="font-size:.8rem; color:#9ca3af; display: block; margin-top: 2px;">Đăng bởi: @r.PostOwnerName</span>
+                            </span>
+                        </div>
+
+                        <div class="report-row">
+                            <span class="report-label">Lý do báo cáo</span>
+                            <div><span class="reason-badge">@r.ReasonLabel</span></div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(r.Details))
+                        {
+                            <div class="report-details-box">
+                                "@r.Details"
+                            </div>
+                        }
+                    </div>
+
+                    <div class="report-actions">
+                        @if (r.MissingPersonId > 0)
+                        {
+                            <button type="button" class="btn-preview"
+                                    onclick="openPreview(@r.MissingPersonId, '@Html.Raw(r.MissingPersonName.Replace("'", "\\'"))')">
+                                Xem bài
+                            </button>
+                        }
+                        @if (r.Status == 1)
+                        {
+                            <form asp-controller="Report" asp-action="ResolveReport"
+                                  method="post"
+                                  onsubmit="return confirm('Xác nhận xử lý báo cáo này?\n\nHành động này sẽ:\n• Gỡ bài đăng &quot;@r.MissingPersonName&quot; xuống\n• Gửi thông báo cho chủ bài (@r.PostOwnerName)\n• Đóng tất cả báo cáo liên quan\n\nBạn có chắc không?')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.ReportId" />
+                                <button type="submit" class="btn-resolve">Gỡ bài &amp; Xử lý</button>
+                            </form>
+                            <form asp-controller="Report" asp-action="DismissReport"
+                                  method="post"
+                                  onsubmit="return confirm('Bỏ qua báo cáo này?\nBài đăng vẫn được giữ nguyên.')">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@r.ReportId" />
+                                <button type="submit" class="btn-dismiss">Bỏ qua</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Phân trang *@
+        @if (totalPages > 1)
+        {
+            <nav class="custom-pagination">
+                @if (page > 1)
+                {
+                    <a href="?page=@(page - 1)&search=@search&status=@statusF">&#8249;</a>
+                }
+                else
+                {
+                    <span class="pg-disabled">&#8249;</span>
+                }
+
+                @for (int i = Math.Max(1, page - 2); i <= Math.Min(totalPages, page + 2); i++)
+                {
+                    if (i == page)
+                    {
+                        <span class="pg-active">@i</span>
+                    }
+                    else
+                    {
+                        <a href="?page=@i&search=@search&status=@statusF">@i</a>
+                    }
+                }
+
+                @if (page < totalPages)
+                {
+                    <a href="?page=@(page + 1)&search=@search&status=@statusF">&#8250;</a>
+                }
+                else
+                {
+                    <span class="pg-disabled">&#8250;</span>
+                }
+            </nav>
+        }
+    }
+</div>
+
+@* ═══ MODAL PREVIEW BÀI ĐĂNG ═══ *@
+<div id="previewOverlay" class="preview-overlay" onclick="closePreviewOnBg(event)">
+    <div class="preview-modal" id="previewModal">
+        <div class="preview-header">
+            <h5 id="previewTitle">Chi tiết bài đăng</h5>
+            <button class="preview-close" onclick="closePreview()">×</button>
+        </div>
+        <div class="preview-body" id="previewBody">
+            <div id="previewLoadingSpinner">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#a5b4fc" stroke-width="2" style="animation:spin 1s linear infinite;">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6v6l4 2"/>
+                </svg>
+                <p style="margin-top:10px;">Đang tải...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<style>
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 2-column layout giống trang Details */
+    .pv-layout {
+        display: flex; gap: 24px; align-items: flex-start;
+    }
+    .pv-left {
+        flex-shrink: 0; width: 200px;
+    }
+    .pv-right {
+        flex: 1; min-width: 0;
+    }
+    .pv-photo {
+        width: 200px; height: 220px; object-fit: cover;
+        border-radius: 12px; display: block;
+    }
+    .pv-photo-placeholder {
+        width: 200px; height: 220px; background: #f3f4f6;
+        border-radius: 12px; display: flex; align-items: center;
+        justify-content: center; color: #9ca3af; font-size: .85rem;
+    }
+    .pv-status-banner {
+        margin-top: 12px; padding: 10px 14px;
+        border-radius: 6px; font-size: .8rem; font-weight: 700;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .pv-pulse {
+        width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+    .pv-status-searching { background:#fff1f2; border-left:4px solid #ef4444; color:#b91c1c; }
+    .pv-status-searching .pv-pulse { background:#ef4444; }
+    .pv-status-found     { background:#f0fdf4; border-left:4px solid #22c55e; color:#15803d; }
+    .pv-status-found .pv-pulse { background:#22c55e; }
+    .pv-status-deleted   { background:#fef2f2; border-left:4px solid #ef4444; color:#991b1b; }
+    .pv-status-closed    { background:#f8fafc; border-left:4px solid #94a3b8; color:#475569; }
+
+    .pv-name { font-size: 1.3rem; font-weight: 700; color: #111827; margin: 0 0 4px; }
+    .pv-time { font-size: .8rem; color: #9ca3af; margin: 0 0 16px; }
+
+    .pv-section { margin-bottom: 18px; }
+    .pv-section-title {
+        font-size: .7rem; font-weight: 800; text-transform: uppercase;
+        letter-spacing: .1em; color: #0d9488; margin-bottom: 10px;
+    }
+    .pv-info-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .pv-info-item { display: flex; flex-direction: column; gap: 2px; }
+    .pv-info-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #9ca3af; letter-spacing: .06em; }
+    .pv-info-value { font-size: .88rem; font-weight: 600; color: #1e293b; }
+
+    .pv-contact-box {
+        background: #f0fdf4; border-radius: 10px;
+        padding: 14px 16px;
+    }
+    .pv-contact-box .pv-section-title { color: #16a34a; }
+    .pv-contact-value { font-size: 1.1rem; font-weight: 700; color: #15803d; }
+
+    .pv-text { font-size: .875rem; color: #4b5563; line-height: 1.65; margin: 0; }
+    .pv-owner { font-size: .875rem; color: #374151; font-weight: 500; }
+
+    .pv-deleted-banner {
+        background: #fee2e2; color: #991b1b;
+        padding: 10px 14px; border-radius: 8px;
+        font-size: .82rem; font-weight: 600; margin-bottom: 16px;
+    }
+
+    /* Clue items */
+    .pv-clue-item {
+        background: #f8f9fc; border-radius: 10px;
+        padding: 12px 14px; margin-bottom: 8px; font-size: .82rem;
+    }
+    .pv-clue-reporter { font-weight: 600; color: #374151; }
+    .pv-clue-content  { color: #4b5563; margin-top: 4px; }
+    .pv-clue-meta     { color: #9ca3af; font-size: .75rem; margin-top: 6px; }
+
+    @@media (max-width: 560px) {
+        .pv-layout { flex-direction: column; }
+        .pv-left { width: 100%; }
+        .pv-photo, .pv-photo-placeholder { width: 100%; height: 200px; }
+        .pv-info-grid { grid-template-columns: 1fr; }
+    }
+</style>
+<script>
+    function openPreview(postId, postName) {
+        document.getElementById('previewTitle').textContent = postName || 'Chi tiết bài đăng';
+        document.getElementById('previewBody').innerHTML = `
+            <div style="text-align:center;padding:40px;color:#9ca3af;">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#a5b4fc" stroke-width="2"
+                     style="animation:spin 1s linear infinite;display:inline-block;">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                <p style="margin-top:10px;">Đang tải...</p>
+            </div>`;
+        document.getElementById('previewOverlay').classList.add('show');
+        document.body.style.overflow = 'hidden';
+
+        fetch(`/Admin/PostPreview?id=${postId}`)
+            .then(r => r.json())
+            .then(d => renderPreview(d))
+            .catch(() => {
+                document.getElementById('previewBody').innerHTML =
+                    '<p style="color:#ef4444;padding:24px;">Không thể tải thông tin bài đăng.</p>';
+            });
+    }
+
+    function renderPreview(d) {
+        if (!d.found) {
+            document.getElementById('previewBody').innerHTML =
+                '<p style="color:#ef4444;padding:24px;">Bài đăng không tồn tại hoặc đã bị xóa.</p>';
+            return;
+        }
+
+        /* Ảnh */
+        const img = d.imageUrl
+            ? `<img src="${d.imageUrl}" class="pv-photo" alt="ảnh" onerror="this.style.display='none'">`
+            : `<div class="pv-photo-placeholder">Không có ảnh</div>`;
+
+        /* Banner xoá */
+        const deletedBanner = d.isDeleted
+            ? `<div class="pv-deleted-banner">Bài đăng này đã bị gỡ xuống</div>` : '';
+
+        /* Badge trạng thái */
+        const statusClasses = {1:'pv-status-searching',2:'pv-status-found',3:'pv-status-closed',4:'pv-status-deleted'};
+        const statusCls = statusClasses[d.statusCode] || 'pv-status-closed';
+        const statusBadge = `
+            <div class="pv-status-banner ${statusCls}">
+                <span class="pv-pulse"></span>
+                ${d.status}
+            </div>`;
+
+        /* Thông tin cơ bản (2-col grid) */
+        let basicRows = '';
+        if (d.age)              basicRows += `<div class="pv-info-item"><span class="pv-info-label">Tuổi</span><span class="pv-info-value">${d.age} tuổi</span></div>`;
+        if (d.gender)           basicRows += `<div class="pv-info-item"><span class="pv-info-label">Giới tính</span><span class="pv-info-value">${d.gender}</span></div>`;
+        if (d.height)           basicRows += `<div class="pv-info-item"><span class="pv-info-label">Chiều cao</span><span class="pv-info-value">${d.height} cm</span></div>`;
+        if (d.lastSeenLocation) basicRows += `<div class="pv-info-item" style="grid-column:1/-1"><span class="pv-info-label">Địa điểm mất tích</span><span class="pv-info-value">${d.lastSeenLocation}</span></div>`;
+
+        /* Đặc điểm nhận dạng */
+        const featureHtml = d.feature ? `
+            <div class="pv-section">
+                <div class="pv-section-title">Đặc điểm nhận dạng</div>
+                <p class="pv-text">${d.feature}</p>
+            </div>` : '';
+
+        /* Nội dung bài viết */
+        const noteHtml = d.noteContent ? `
+            <div class="pv-section">
+                <div class="pv-section-title">Nội dung bài viết</div>
+                <p class="pv-text">${d.noteContent}</p>
+            </div>` : '';
+
+        /* Thông tin liên hệ */
+        const contactHtml = d.contact ? `
+            <div class="pv-section pv-contact-box">
+                <div class="pv-section-title">Thông tin liên hệ</div>
+                <div class="pv-contact-value">${d.contact}</div>
+            </div>` : '';
+
+        /* Người đăng bài */
+        const ownerHtml = `
+            <div class="pv-section">
+                <div class="pv-section-title">Người đăng bài</div>
+                <div class="pv-owner">${d.ownerName}
+                    <span style="color:#9ca3af;font-size:.78rem;margin-left:4px;">${d.ownerEmail}</span>
+                </div>
+            </div>`;
+
+        /* Manh mối */
+        let cluesHtml = '';
+        if (d.clues && d.clues.length > 0) {
+            cluesHtml = `<div class="pv-section-title" style="margin-top:12px; margin-bottom: 16px; color: #059669;">Manh mối gần nhất (${d.clueCount} tổng cộng)</div>`;
+            d.clues.forEach(c => {
+                // Parse packed content: SEEN_AT:|PHONE:|CONTENT:
+                const parseClue = (key) => {
+                    if (!c.content) return "";
+                    const parts = c.content.split('|');
+                    for (let p of parts) {
+                        if (p.startsWith(key + ":")) return p.substring(key.length + 1);
+                    }
+                    return "";
+                };
+
+                const seenAt = parseClue("SEEN_AT");
+                const phone = parseClue("PHONE");
+                const content = parseClue("CONTENT") || c.content; // fallback if not packed
+                const loc = c.location || "Không rõ vị trí";
+                
+                const cImg = c.imageUrl ? `<img src="${c.imageUrl}" style="width:100%;border-radius:10px;margin-top:12px;max-height:200px;object-fit:cover;border: 1px solid #f1f5f9;">` : '';
+                
+                let detailsHtml = '';
+                if (seenAt) detailsHtml += `<div class="pv-clue-detail-item">🕒 Thấy lúc: ${seenAt}</div>`;
+                if (phone) detailsHtml += `<div class="pv-clue-detail-item">📞 SĐT: ${phone}</div>`;
+                if (loc) detailsHtml += `<div class="pv-clue-detail-item">📍 ${loc}</div>`;
+
+                cluesHtml += `
+                    <div class="pv-clue-item">
+                        <div class="pv-clue-reporter">${c.reporter}</div>
+                        <div class="pv-clue-content">${content}</div>
+                        <div class="pv-clue-detail">${detailsHtml}</div>
+                        ${cImg}
+                        <div class="pv-clue-meta">
+                            <span>Gửi lúc: ${c.createdAt}</span>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        document.getElementById('previewTitle').textContent = d.fullName;
+        document.getElementById('previewBody').innerHTML = `
+            ${deletedBanner}
+            <div class="pv-layout">
+                <div class="pv-left">
+                    ${img}
+                    ${statusBadge}
+                </div>
+                <div class="pv-right">
+                    <h2 class="pv-name">${d.fullName}</h2>
+                    <p class="pv-time">Đăng lúc ${d.createdAt}</p>
+
+                    <div class="pv-section">
+                        <div class="pv-section-title">Thông tin cơ bản</div>
+                        <div class="pv-info-grid">${basicRows}</div>
+                    </div>
+
+                    ${featureHtml}
+                    ${noteHtml}
+                    ${contactHtml}
+                    ${ownerHtml}
+                </div>
+            </div>
+            ${cluesHtml ? `<hr style="margin:20px 0;border:none;border-top:1px solid #f3f4f6;">${cluesHtml}` : ''}
+        `;
+    }
+
+    function closePreview() {
+        document.getElementById('previewOverlay').classList.remove('show');
+        document.body.style.overflow = '';
+    }
+
+    function closePreviewOnBg(e) {
+        if (e.target === document.getElementById('previewOverlay')) closePreview();
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closePreview();
+    });
+</script>
+}

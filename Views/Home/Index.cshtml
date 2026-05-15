@@ -1,203 +1,439 @@
-﻿@{
+@{
     ViewData["Title"] = "Trang chủ";
 }
 
-<div class="dsm-page hr-light-theme">
+<div class="dsm-page">
 
     <!-- ══════════════ HERO ══════════════ -->
     <section class="hero">
-        <div class="hero__bg" style="background-image: url('/images/redesign/golden_bridge.jpg');"></div>
-        <div class="hero__overlay" style="background: linear-gradient(135deg, rgba(0, 137, 123, .82) 0%, rgba(0, 137, 123, .55) 60%, rgba(0, 137, 123, .3) 100%);"></div>
+        <div class="hero__bg"></div>
+        <div class="hero__overlay"></div>
         <div class="hero__content">
-            <div class="hero__badge"><span></span> Hệ thống bản đồ số trực tuyến</div>
-            <h1 class="hero__title">DaNang <em>SafeMap</em></h1>
-            <p class="hero__sub">Hệ thống bản đồ số tích hợp dữ liệu không gian đô thị cảnh báo an ninh và hỗ trợ cộng đồng.</p>
+            <div class="hero__badge">
+                <span></span>
+                HỆ THỐNG HOẠT ĐỘNG 24/7
+            </div>
+            <h1 class="hero__title">
+                Bản đồ số cảnh báo<br>
+                <em>an ninh Đà Nẵng</em>
+            </h1>
+            <p class="hero__sub">
+                Theo dõi tình hình an ninh trật tự, tìm người thất lạc và cập nhật tin tức
+                quan trọng tại thành phố Đà Nẵng theo thời gian thực.
+            </p>
             <div class="hero__cta">
                 <a asp-controller="Map" asp-action="Index" class="btn-hero-primary">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
-                    XEM BẢN ĐỒ
+                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Xem Bản đồ ngay
                 </a>
                 <a asp-controller="Article" asp-action="Index" class="btn-hero-secondary">
-                    TIN TỨC
+                    <svg viewBox="0 0 24 24"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+                    Tin tức an ninh
                 </a>
             </div>
         </div>
+    </section>
 
-        <!-- Stats floating bar -->
-        <div class="hr-stats-float">
-            <div class="hr-stats-float__item">
-                <div class="stat-number" data-target="1284">0</div>
-                <div class="stat-label">Người đã tìm thấy</div>
-            </div>
-            <div class="hr-stats-float__divider"></div>
-            <div class="hr-stats-float__item">
-                <div class="stat-number" data-target="85">0</div>
-                <div class="stat-label">Cảnh báo hôm nay</div>
-            </div>
-            <div class="hr-stats-float__divider"></div>
-            <div class="hr-stats-float__item">
-                <div class="stat-number" data-target="12400">0</div>
-                <div class="stat-label">Lượt truy cập</div>
-            </div>
-            <div class="hr-stats-float__divider"></div>
-            <div class="hr-stats-float__item">
-                <div class="stat-number" data-target="100" data-suffix="%">0</div>
-                <div class="stat-label">Độ tin cậy</div>
-            </div>
+    <!-- ══════════════ FEATURE CARDS ══════════════ -->
+    <section class="section fcard-section">
+        <div class="section-header fcard-section__header">
+            <div class="section-eyebrow">Hệ thống toàn diện</div>
+            <h2 class="section-title">Tất cả công cụ bạn cần trong một nền tảng</h2>
+            <p class="section-sub">Từ theo dõi bản đồ thời gian thực đến hỗ trợ tìm kiếm người thân — DaNang SafeMap luôn sẵn sàng bên bạn.</p>
+        </div>
+
+        <div class="feature-grid feature-grid--3">
+            <!-- Card 1: Bản đồ -->
+            <a asp-controller="Map" asp-action="Index" class="fcard2">
+                <div class="fcard2__icon fcard2__icon--teal">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <circle cx="24" cy="22" r="14" fill="#b2dfdb"/>
+                        <path d="M24 8C16.27 8 10 14.27 10 22c0 10.5 14 26 14 26s14-15.5 14-26c0-7.73-6.27-14-14-14z" fill="#00897B" opacity=".85"/>
+                        <circle cx="24" cy="22" r="5" fill="#fff"/>
+                    </svg>
+                </div>
+                <div class="fcard2__title">Bản đồ trực tuyến</div>
+                <p class="fcard2__desc">Theo dõi các cảnh báo an ninh, tai nạn và sự kiện quan trọng trên bản đồ thời gian thực của toàn thành phố Đà Nẵng.</p>
+                <span class="fcard2__btn">Xem thêm</span>
+            </a>
+
+            <!-- Card 2: Tin tức -->
+            <a asp-controller="Article" asp-action="Index" class="fcard2">
+                <div class="fcard2__icon fcard2__icon--blue">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <rect x="6" y="8" width="36" height="32" rx="4" fill="#bbdefb"/>
+                        <rect x="12" y="16" width="24" height="3" rx="1.5" fill="#0288D1"/>
+                        <rect x="12" y="22" width="18" height="3" rx="1.5" fill="#0288D1" opacity=".7"/>
+                        <rect x="12" y="28" width="14" height="3" rx="1.5" fill="#0288D1" opacity=".5"/>
+                    </svg>
+                </div>
+                <div class="fcard2__title">Tin tức an ninh</div>
+                <p class="fcard2__desc">Cập nhật những tin tức mới nhất về tình hình an ninh trật tự, cảnh báo tội phạm và thông báo từ cơ quan chức năng.</p>
+                <span class="fcard2__btn">Xem thêm</span>
+            </a>
+
+            <!-- Card 3: Tìm người -->
+            <a asp-controller="MissingPerson" asp-action="Index" class="fcard2">
+                <div class="fcard2__icon fcard2__icon--amber">
+                    <svg viewBox="0 0 48 48" fill="none">
+                        <circle cx="21" cy="20" r="12" fill="#ffe0b2"/>
+                        <circle cx="21" cy="20" r="8" fill="none" stroke="#F57C00" stroke-width="3"/>
+                        <line x1="30" y1="30" x2="40" y2="40" stroke="#E65100" stroke-width="3.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="fcard2__title">Tìm người thất lạc</div>
+                <p class="fcard2__desc">Đăng tin tìm kiếm người thân, hỗ trợ cộng đồng tìm kiếm người già, trẻ em đi lạc hoặc mất tích tại Đà Nẵng.</p>
+                <span class="fcard2__btn">Xem thêm</span>
+            </a>
         </div>
     </section>
 
-    <!-- ══════════════ SECTION 1: BẢN ĐỒ ══════════════ -->
-    <section class="hr-sec-light">
-        <div class="hr-container hr-territory-v2">
-            <div class="hr-map-graphic-v2">
-                <img src="~/images/redesign/map_user_download.png" alt="User Provided Map" />
-            </div>
-            <div class="hr-desc-box">
-                <h2 class="hr-title-v1">Bản đồ</h2>
-                <p class="hr-desc-v1">
-                    Hệ thống bản đồ số tích hợp dữ liệu không gian đô thị của khu vực Đà Nẵng và các vùng phụ cận. 
-                    Giúp người dân và du khách dễ dàng tiếp cận các thông tin an ninh, giao thông và các khu vực hỗ trợ cộng đồng một cách trực quan và chính xác nhất.
+    <!-- ══════════════ FEATURE DETAIL: BẢN ĐỒ TRỰC TUYẾN ══════════════ -->
+    <section class="feat-detail-section feat-detail-section--photo-1">
+        <div class="feat-detail-inner">
+            <!-- Cột trái: Header + nút -->
+            <div class="feat-detail__text">
+                <div class="section-eyebrow">Chức năng nổi bật</div>
+                <h2 class="feat-detail__title">Bản đồ trực tuyến<br>thông minh &amp; trực quan</h2>
+                <p class="feat-detail__desc">
+                    Hệ thống hiển thị thông tin an ninh khu vực theo 3 mức zoom khác nhau, giúp người dân
+                    chủ động nắm bắt tình hình và tránh các khu vực nguy hiểm trong thời gian thực.
                 </p>
-                <div style="margin-top: 30px;">
-                    <a asp-controller="Map" asp-action="Index" class="hr-btn-v1">Truy cập bản đồ</a>
+                <a asp-controller="Map" asp-action="Index" class="feat-detail__cta">
+                    Xem Bản đồ ngay
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+            </div>
+
+            <!-- Cột phải: 2 thẻ card xếp dọc -->
+            <div class="feat-detail__items">
+                <!-- Item 1: Heatmap -->
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4FC3F7"/><stop offset="100%" stop-color="#00897B"/></linearGradient></defs>
+                            <rect x="6" y="8" width="52" height="40" rx="6" fill="url(#g1)" opacity=".2"/>
+                            <rect x="10" y="12" width="44" height="32" rx="4" fill="url(#g1)"/>
+                            <line x1="10" y1="24" x2="54" y2="24" stroke="#fff" stroke-width="1.5" opacity=".4"/>
+                            <line x1="10" y1="34" x2="54" y2="34" stroke="#fff" stroke-width="1.5" opacity=".3"/>
+                            <line x1="32" y1="12" x2="32" y2="44" stroke="#fff" stroke-width="1.5" opacity=".3"/>
+                            <circle cx="38" cy="26" r="8" fill="#FF6B6B" opacity=".7"/>
+                            <circle cx="24" cy="32" r="5" fill="#FFE66D" opacity=".6"/>
+                            <path d="M38 18c-3 0-5.5 2.5-5.5 5.5S38 30 38 30s5.5-4 5.5-6.5S41 18 38 18z" fill="#FF6B6B"/>
+                            <circle cx="38" cy="23.5" r="2" fill="#fff"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="feat-detail__item-title">Bản đồ nhiệt (Heatmap)</div>
+                        <p class="feat-detail__item-desc">Hiển thị mật độ sự cố theo mã màu đỏ – cam – vàng – xanh, giúp nhận diện ngay vùng an toàn và vùng nhạy cảm trước khi di chuyển.</p>
+                    </div>
+                </div>
+                <!-- Item 2: Báo cáo sự cố -->
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon feat-detail__item-icon--amber">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#F57C00"/>
+                            <line x1="12" y1="9" x2="12" y2="13" stroke="#F57C00"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17" stroke="#F57C00"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="feat-detail__item-title">Báo cáo sự cố</div>
+                        <p class="feat-detail__item-desc">Người dân có thể báo cáo sự cố an ninh trực tiếp trên bản đồ — thông tin được kiểm duyệt và cập nhật theo thời gian thực.</p>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="hr-wave hr-wave--bottom hr-wave--bg-light">
-            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-                <path d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,85.3C672,75,768,85,864,96C960,107,1056,117,1152,106.7C1248,96,1344,64,1392,48L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
-        </div>
     </section>
 
-    <!-- ══════════════ SECTION 2: TIN TỨC ══════════════ -->
-    <section class="hr-sec-light hr-actualites">
-        <div class="hr-container">
-            <div class="hr-actualites__image">
-                <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&q=80" alt="Da Nang News" />
+    <!-- ══════════════ FEATURE DETAIL: TIN TỨC AN NINH ══════════════ -->
+    <section class="feat-detail-section feat-detail-section--white-mid">
+        <div class="feat-detail-inner">
+            <!-- Cột trái: 2 thẻ card -->
+            <div class="feat-detail__items">
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#4FC3F7"/><stop offset="100%" stop-color="#0288D1"/></linearGradient></defs>
+                            <rect x="10" y="6" width="36" height="52" rx="4" fill="url(#g3)" opacity=".2"/>
+                            <rect x="14" y="10" width="28" height="44" rx="3" fill="url(#g3)"/>
+                            <rect x="20" y="20" width="16" height="3" rx="1.5" fill="#fff" opacity=".8"/>
+                            <rect x="20" y="27" width="12" height="3" rx="1.5" fill="#fff" opacity=".6"/>
+                            <rect x="20" y="34" width="14" height="3" rx="1.5" fill="#fff" opacity=".5"/>
+                            <circle cx="48" cy="14" r="10" fill="#FF6B6B"/>
+                            <text x="48" y="18" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">!</text>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="feat-detail__item-title">Tin tức thời gian thực</div>
+                        <p class="feat-detail__item-desc">Cập nhật liên tục các bài viết về tình hình an ninh trật tự, cảnh báo từ cơ quan chức năng và thông báo khẩn cấp khu vực Đà Nẵng.</p>
+                    </div>
+                </div>
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FFD54F"/><stop offset="100%" stop-color="#FF9800"/></linearGradient></defs>
+                            <path d="M32 4C22 4 14 10 14 18c0 8 6 14 6 14h24s6-6 6-14c0-8-8-14-18-14z" fill="url(#g4)" opacity=".2"/>
+                            <path d="M32 10C25 10 19 15 19 21c0 6 5 11 5 11h16s5-5 5-11c0-6-6-11-13-11z" fill="url(#g4)"/>
+                            <rect x="24" y="44" width="16" height="4" rx="2" fill="url(#g4)" opacity=".7"/>
+                            <rect x="26" y="50" width="12" height="4" rx="2" fill="url(#g4)" opacity=".5"/>
+                            <line x1="32" y1="18" x2="32" y2="28" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="38" cy="8" r="3" fill="#FF9800" opacity=".5"/>
+                            <circle cx="26" cy="6" r="2" fill="#FFD54F" opacity=".6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="feat-detail__item-title">Thông báo đẩy tức thì</div>
+                        <p class="feat-detail__item-desc">Nhận thông báo ngay khi có sự cố xảy ra gần vị trí của bạn — không cần mở ứng dụng, vẫn luôn được cảnh báo kịp thời.</p>
+                    </div>
+                </div>
             </div>
-            <div class="hr-actualites__card">
-                <h2 class="hr-title-v1" style="font-size: 32px;">Tin tức</h2>
-                <p class="hr-desc-v1">
-                    Cập nhật nhanh nhất các thông tin cảnh báo an ninh, giao thông và các sự kiện cộng đồng nổi bật tại thành phố Đà Nẵng.
+
+            <!-- Cột phải: Header + nút -->
+            <div class="feat-detail__text">
+                <div class="section-eyebrow">Luôn cập nhật</div>
+                <h2 class="feat-detail__title">Tin tức an ninh<br>chính xác &amp; kịp thời</h2>
+                <p class="feat-detail__desc">
+                    Tổng hợp thông tin từ cơ quan chức năng, báo chí địa phương và cộng đồng người dân
+                    — giúp bạn nắm bắt tình hình an ninh Đà Nẵng mọi lúc, mọi nơi.
                 </p>
-                <a asp-controller="Article" asp-action="Index" class="hr-btn-v1">Xem tin tức</a>
-            </div>
-        </div>
-
-        <div class="hr-wave hr-wave--bottom">
-            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-                <path d="M0,96L48,85.3C96,75,192,53,288,53.3C384,53,480,75,576,80C672,85,768,75,864,58.7C960,43,1056,21,1152,16C1248,11,1344,64,1392,90.7L1440,117.3L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
-        </div>
-    </section>
-
-    <!-- ══════════════ SECTION 3: TÌM KIẾM NGƯỜI THÂN ══════════════ -->
-    <section class="hr-sec-light">
-        <div class="hr-container">
-            <div class="hr-gazette">
-                <div class="hr-gazette__text">
-                    <h2 class="hr-title-v1">Tìm kiếm người thân</h2>
-                    <p class="hr-desc-v1">
-                        Hỗ trợ cộng đồng tìm kiếm người thất lạc. 
-                        Đăng tải thông tin và kết nối sức mạnh tập thể để mang mọi người trở về nhà an toàn.
-                    </p>
-                    <a asp-controller="MissingPerson" asp-action="Index" class="hr-btn-v1 hr-btn-white-v1">Xem chi tiết</a>
-                </div>
-                <div class="hr-gazette__preview">
-                    <img src="~/images/redesign/gazette_pbl3.png" alt="PBL3 Gazette" />
-                </div>
+                <a asp-controller="Article" asp-action="Index" class="feat-detail__cta">
+                    Xem tin tức
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- ══════════════ SECTION 4: NHỮNG NƠI NÊN ĐẾN ══════════════ -->
-    <section class="hr-sec-light hr-destinations">
-        <div class="hr-container" style="flex-direction: column; gap: 40px;">
-            <div style="text-align: center;">
-                <h2 class="hr-title-v1">Những nơi nên đến ở Đà Nẵng</h2>
-                <p class="hr-desc-v1" style="max-width: 600px; margin: 0 auto;">Khám phá những điểm đến hấp dẫn và an toàn tại thành phố đáng sống nhất Việt Nam.</p>
+    <!-- ══════════════ FEATURE DETAIL: TÌM NGƯỜI THẤT LẠC ══════════════ -->
+    <section class="feat-detail-section feat-detail-section--photo-2">
+        <div class="feat-detail-inner">
+            <!-- Cột trái: Header + nút -->
+            <div class="feat-detail__text">
+                <div class="section-eyebrow">Kết nối cộng đồng</div>
+                <h2 class="feat-detail__title">Tìm người thất lạc<br>cùng sức mạnh cộng đồng</h2>
+                <p class="feat-detail__desc">
+                    Hệ thống cho phép đăng tin tìm kiếm, chia sẻ thông tin và liên lạc trực tiếp
+                    với người đăng — giúp rút ngắn thời gian tìm kiếm người thân bị lạc tại Đà Nẵng.
+                </p>
+                <a asp-controller="MissingPerson" asp-action="Index" class="feat-detail__cta">
+                    Tìm kiếm ngay
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
             </div>
-            <div class="hr-dest-grid">
-                <div class="hr-dest-card">
-                    <div class="hr-dest-card__img">
-                        <img src="https://images.unsplash.com/photo-1570868738828-26764a58cdba?w=600&q=80" alt="Cầu Vàng" />
+
+            <!-- Cột phải: 2 thẻ card -->
+            <div class="feat-detail__items">
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#AB47BC"/><stop offset="100%" stop-color="#E040FB"/></linearGradient></defs>
+                            <circle cx="28" cy="28" r="22" fill="url(#g5)" opacity=".15"/>
+                            <circle cx="28" cy="28" r="14" fill="url(#g5)"/>
+                            <circle cx="28" cy="28" r="6" fill="#fff" opacity=".3"/>
+                            <line x1="38" y1="38" x2="54" y2="54" stroke="url(#g5)" stroke-width="6" stroke-linecap="round"/>
+                            <circle cx="50" cy="12" r="5" fill="#E040FB" opacity=".4"/>
+                        </svg>
                     </div>
-                    <div class="hr-dest-card__body">
-                        <h3>Cầu Vàng</h3>
-                        <p>Biểu tượng du lịch nổi tiếng thế giới nằm trên đỉnh Bà Nà Hills, mang đến trải nghiệm tuyệt vời giữa mây trời.</p>
-                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
-                    </div>
-                </div>
-                <div class="hr-dest-card">
-                    <div class="hr-dest-card__img">
-                        <img src="https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80" alt="Bãi biển Mỹ Khê" />
-                    </div>
-                    <div class="hr-dest-card__body">
-                        <h3>Bãi biển Mỹ Khê</h3>
-                        <p>Một trong những bãi biển đẹp nhất hành tinh theo bình chọn của Forbes, với bờ cát trắng trải dài.</p>
-                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
+                    <div>
+                        <div class="feat-detail__item-title">Đăng tin tìm kiếm nhanh</div>
+                        <p class="feat-detail__item-desc">Tạo bài đăng tìm người với ảnh, thông tin mô tả và vị trí mất tích chỉ trong vài bước — bài đăng được phân phối ngay tới cộng đồng khu vực.</p>
                     </div>
                 </div>
-                <div class="hr-dest-card">
-                    <div class="hr-dest-card__img">
-                        <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80" alt="Ngũ Hành Sơn" />
+                <div class="feat-detail__item">
+                    <div class="feat-detail__item-icon">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                            <defs><linearGradient id="g6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#26C6DA"/><stop offset="100%" stop-color="#00897B"/></linearGradient></defs>
+                            <circle cx="32" cy="24" r="12" fill="url(#g6)"/>
+                            <path d="M12 56c0-11 8-20 20-20s20 9 20 20" fill="url(#g6)" opacity=".3"/>
+                            <circle cx="48" cy="20" r="8" fill="url(#g6)" opacity=".6"/>
+                            <path d="M48 32c-4 0-8 4-8 8v4h16v-4c0-4-4-8-8-8z" fill="url(#g6)" opacity=".8"/>
+                        </svg>
                     </div>
-                    <div class="hr-dest-card__body">
-                        <h3>Ngũ Hành Sơn</h3>
-                        <p>Danh thắng nổi tiếng với hệ thống hang động, chùa chiền và tầm nhìn toàn cảnh thành phố từ trên cao.</p>
-                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
+                    <div>
+                        <div class="feat-detail__item-title">Cộng đồng cùng xác nhận</div>
+                        <p class="feat-detail__item-desc">Người dân gần khu vực có thể xác nhận đã nhìn thấy hoặc cung cấp thêm thông tin — tăng tốc độ tìm kiếm nhờ sức mạnh tập thể.</p>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <!-- Wave divider for curvy transition -->
-        <div class="hr-wave hr-wave--bottom">
-            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
-                <path d="M0,96L48,85.3C96,75,192,53,288,53.3C384,53,480,75,576,80C672,85,768,75,864,58.7C960,43,1056,21,1152,16C1248,11,1344,64,1392,90.7L1440,117.3L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-            </svg>
+
+    <!-- ══════════════ STATS SECTION ══════════════ -->
+    <section class="stats-section">
+        <div class="stats-section__top">
+            <h2 class="stats-section__title">Cộng đồng an toàn hơn<br>mỗi ngày.</h2>
+            <p class="stats-section__desc">DaNang SafeMap đang được hàng nghìn người dân Đà Nẵng tin dùng để theo dõi tình hình an ninh và hỗ trợ tìm kiếm người thân mỗi ngày.</p>
+            <div class="stats-section__boxes">
+                <div class="stats-section__box">
+                    <div class="stats-section__box-num">12.000+</div>
+                    <div class="stats-section__box-label">Người dùng đang hoạt động<br>với hàng chục nghìn lượt truy cập mỗi tháng</div>
+                </div>
+                <div class="stats-section__box">
+                    <div class="stats-section__box-num">94 Đơn vị hành chính</div>
+                    <div class="stats-section__box-label">được phủ sóng toàn diện bao gồm 23 phường,<br>70 xã và 01 đặc khu (Hoàng Sa)</div>
+                </div>
+            </div>
+        </div>
+        <div class="stats-section__bar">
+            <div class="stats-section__bar-inner">
+                <div class="stats-section__stat">
+                    <div class="stats-section__stat-num">5K+</div>
+                    <div class="stats-section__stat-label">Báo cáo đã xử lý</div>
+                </div>
+                <div class="stats-section__divider"></div>
+                <div class="stats-section__stat">
+                    <div class="stats-section__stat-num">30+</div>
+                    <div class="stats-section__stat-label">Người thất lạc được tìm thấy</div>
+                </div>
+                <div class="stats-section__divider"></div>
+                <div class="stats-section__stat">
+                    <div class="stats-section__stat-num">12K+</div>
+                    <div class="stats-section__stat-label">Người dùng tích cực</div>
+                </div>
+                <div class="stats-section__divider"></div>
+                <div class="stats-section__stat">
+                    <div class="stats-section__stat-num">24/7</div>
+                    <div class="stats-section__stat-label">Hệ thống hoạt động liên tục</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ HOW IT WORKS ══════════════ -->
+    <section class="section steps-section">
+        <div class="section-header">
+            <div class="section-eyebrow">Cách hoạt động</div>
+            <h2 class="section-title">Bắt đầu chỉ trong vài bước đơn giản</h2>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <h4>Đăng ký tài khoản</h4>
+                <p>Tạo tài khoản miễn phí với email hoặc Google chỉ trong 30 giây.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <h4>Theo dõi bản đồ</h4>
+                <p>Xem các cảnh báo an ninh, sự cố và tin tức theo vị trí thực tế trên bản đồ.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <h4>Báo cáo sự cố</h4>
+                <p>Gửi báo cáo nhanh các tình huống bất thường để hỗ trợ cộng đồng kịp thời.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">4</div>
+                <h4>Kết nối cộng đồng</h4>
+                <p>Cùng người dân Đà Nẵng xây dựng thành phố an toàn và văn minh hơn.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════ CTA ══════════════ -->
+    <section class="cta-section">
+        <div class="cta-overlay"></div>
+        <div class="cta-inner">
+            <h2>Sẵn sàng bảo vệ cộng đồng?</h2>
+            <p>Tham gia cùng hàng nghìn người dân Đà Nẵng đang sử dụng DaNang SafeMap mỗi ngày.</p>
+            <a asp-controller="Auth" asp-action="Register" class="btn-cta">
+                <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Đăng ký miễn phí ngay
+            </a>
         </div>
     </section>
 
     <!-- ══════════════ FOOTER ══════════════ -->
-    @await Html.PartialAsync("_SiteFooter")
+    <footer class="dsm-footer">
+        <div class="footer-main">
+            <div class="footer-col">
+                <div class="footer-brand">
+                    <div class="footer-brand-icon">
+                        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <span class="footer-brand-name">DaNang SafeMap</span>
+                </div>
+                <p class="footer-desc">Hệ thống bản đồ số cảnh báo an ninh đô thị và hỗ trợ tìm người thất lạc tại thành phố Đà Nẵng.</p>
+                <div class="footer-social">
+                    <a href="#" aria-label="Facebook">
+                        <svg viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Twitter">
+                        <svg viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
+                    </a>
+                    <a href="#" aria-label="Youtube">
+                        <svg viewBox="0 0 24 24"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg>
+                    </a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Tính năng</h4>
+                <ul class="footer-links">
+                    <li><a asp-controller="Map" asp-action="Index">Bản đồ trực tuyến</a></li>
+                    <li><a asp-controller="Article" asp-action="Index">Tin tức an ninh</a></li>
+                    <li><a asp-controller="MissingPerson" asp-action="Index">Tìm người thất lạc</a></li>
+                    <li><a asp-controller="Map" asp-action="Index">Báo cáo sự cố</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Hỗ trợ</h4>
+                <ul class="footer-links">
+                    <li><a asp-controller="Home" asp-action="Guide">Hướng dẫn sử dụng</a></li>
+                    <li><a asp-controller="Home" asp-action="FAQ">Câu hỏi thường gặp</a></li>
+                    <li><a asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a></li>
+                    <li><a asp-controller="Home" asp-action="Terms">Điều khoản sử dụng</a></li>
+                    <li><a asp-controller="Home" asp-action="Donate">Đóng góp &amp; Ủng hộ</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>Liên hệ</h4>
+                <ul class="footer-contact" style="list-style:none;">
+                    <li>
+                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Đà Nẵng, Việt Nam
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        contact@danangsafemap.vn
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 DaNang SafeMap. Bảo lưu mọi quyền. &nbsp;|&nbsp;
+            <a asp-controller="Home" asp-action="Privacy">Chính sách bảo mật</a>
+        </div>
+    </footer>
 
 </div>
 
 @section Scripts {
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const stats = document.querySelectorAll('.stat-number');
-            const observer = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const target = +entry.target.getAttribute('data-target');
-                        const suffix = entry.target.getAttribute('data-suffix') || '';
-                        let count = 0;
-                        const duration = 2000;
-                        const increment = target / (duration / 16);
+<script>
+(function () {
+    // Scroll-reveal animation using IntersectionObserver
+    const revealEls = document.querySelectorAll(
+        '.fcard2, .feat-detail__text, .feat-detail__items, ' +
+        '.stats-section__box, .stats-section__stat, ' +
+        '.showcase-card, .section-header, .about-inner'
+    );
 
-                        const updateCount = () => {
-                            count += increment;
-                            if (count < target) {
-                                entry.target.innerText = Math.ceil(count).toLocaleString() + suffix;
-                                requestAnimationFrame(updateCount);
-                            } else {
-                                entry.target.innerText = target.toLocaleString() + suffix;
-                            }
-                        };
-                        updateCount();
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.5 });
-
-            stats.forEach(stat => {
-                observer.observe(stat);
-            });
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
         });
-    </script>
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach((el, i) => {
+        // Stagger delay for sibling elements in same grid
+        const siblings = el.parentElement ? el.parentElement.children : [];
+        const idx = Array.from(siblings).indexOf(el);
+        el.style.transitionDelay = (idx * 80) + 'ms';
+        observer.observe(el);
+    });
+})();
+</script>
 }

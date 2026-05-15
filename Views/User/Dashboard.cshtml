@@ -152,7 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadUserInfo() {
   try {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!u.fullName && !u.email) { window.location.href = '/Auth/Login'; return; }
+    if (!u.fullName && !u.email) {
+      document.getElementById('udAvatar').textContent = '?';
+      document.getElementById('udName').textContent = 'Chưa đăng nhập';
+      document.getElementById('udEmail').textContent = 'Đăng nhập để xem báo cáo của bạn';
+      document.getElementById('udRepScore').textContent = '-';
+      document.getElementById('udRepFill').style.width = '0%';
+      return;
+    }
     document.getElementById('udAvatar').textContent = (u.fullName || u.email).charAt(0).toUpperCase();
     document.getElementById('udName').textContent = u.fullName || 'Người dùng';
     document.getElementById('udEmail').textContent = u.email || '';
@@ -160,7 +167,9 @@ function loadUserInfo() {
     document.getElementById('udRepScore').textContent = rep + '/10';
     document.getElementById('udRepFill').style.width = (rep * 10) + '%';
   } catch (_) {
-    window.location.href = '/Auth/Login';
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    renderNeedLogin();
   }
 }
 
@@ -371,6 +380,10 @@ function openFirstMedia(url, event) {
 }
 
 function openReport() {
+  if (!localStorage.getItem('token')) {
+    window.location.href = '/Auth/Login';
+    return;
+  }
   window.location.href = '/Map?openReport=1';
 }
 

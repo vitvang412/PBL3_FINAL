@@ -1,0 +1,1267 @@
+@model DaNangSafeMap.Models.Entities.MissingPerson
+@{
+    ViewData["Title"] = "Chi Tiết - " + Model.FullName;
+
+    string GetDesc(string key) {
+        if (string.IsNullOrEmpty(Model.Description)) return "";
+        var parts = Model.Description.Split('|');
+        foreach (var p in parts) {
+            if (p.StartsWith(key + ":")) return p.Substring(key.Length + 1);
+        }
+        return "";
+    }
+
+    var age     = GetDesc("TUOI");
+    var gender  = GetDesc("GIOITINH");
+    var height  = GetDesc("CHIEUCAO");
+    var feature = GetDesc("DACBIET");
+    var contact = GetDesc("LIENHE");
+    var content = GetDesc("NOIDUNG");
+
+    bool isFound     = Model.Status == 2;
+    bool isSearching = Model.Status == 1;
+    var personId     = Model.Id;
+    var ownerId      = Model.UserId;
+}
+
+<link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+<link href="https://cdn.jsdelivr.net/npm/@@goongmaps/goong-js@1.0.9/dist/goong-js.css" rel="stylesheet" />
+
+<style>
+/* ── Action Panel ── */
+.ap-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+/* Status Banner - not looking like a button */
+.ap-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fff1f2;
+    border-left: 4px solid #ef4444;
+    border-radius: 6px;
+    color: #b91c1c;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.ap-status-banner.found {
+    background: #f0fdf4;
+    border-left-color: #22c55e;
+    color: #15803d;
+}
+.ap-pulse {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    flex-shrink: 0;
+    animation: apPulse 1.5s ease-in-out infinite;
+}
+.ap-status-banner.found .ap-pulse { background: #22c55e; animation: none; box-shadow: none; }
+@@keyframes apPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); opacity: 1; }
+    50% { box-shadow: 0 0 0 4px rgba(239,68,68,0); opacity: .8; }
+}
+
+/* Professional Action Buttons */
+.ap-btn {
+    position: relative;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all .2s ease;
+    color: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+.ap-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+.ap-btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+/* Solid Trustworthy Colors */
+.ap-btn--send-clue { background: #2563eb; }
+.ap-btn--send-clue:hover { background: #1d4ed8; }
+
+.ap-btn--contact { background: #0f766e; }
+.ap-btn--contact:hover { background: #115e59; }
+
+.ap-btn--resolve { background: #16a34a; }
+.ap-btn--resolve:hover { background: #15803d; }
+
+.ap-btn--clue { background: #f59e0b; }
+.ap-btn--clue:hover { background: #d97706; }
+
+.ap-btn--chat { background: #0f766e; }
+.ap-btn--chat:hover { background: #115e59; }
+
+/* Report Button: Subtle Outline */
+.ap-btn--report {
+    background: #fff;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+    box-shadow: none;
+}
+.ap-btn--report:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fca5a5;
+    box-shadow: none;
+}
+
+.ap-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    min-width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #111827;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #fff;
+    line-height: 1;
+}
+.ap-badge--red { background: #ef4444; }
+</style>
+
+<div class="mp-detail-page">
+  <div class="mp-detail-card">
+    <a href="/MissingPerson" class="mp-back-btn">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Quay lại danh sách
+    </a>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="mp-alert mp-alert--success">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mp-alert mp-alert--error">@TempData["Error"]</div>
+    }
+
+    <div class="mp-detail-layout">
+      <!-- ── LEFT ── -->
+      <div class="mp-detail-left">
+        <div class="mp-detail-photo">
+          @if (!string.IsNullOrEmpty(Model.ImageUrl))
+          { <img src="@Model.ImageUrl" alt="@Model.FullName" /> }
+          else
+          { <div class="mp-detail-no-photo">?</div> }
+        </div>
+
+        <!-- ── ACTION PANEL ── -->
+        @if (isSearching)
+        {
+          <div class="ap-panel">
+            <!-- Status badge -->
+            <div class="ap-status-banner" id="apStatusBadge">
+              <span class="ap-pulse"></span>
+              ĐANG TÌM KIẾM
+            </div>
+
+            <!-- GUEST: Gửi manh mối + Chat -->
+            <div id="guestActions">
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="ap-btn ap-btn--send-clue" onclick="showSupportChoice('clue')">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Gửi manh mối
+                </button>
+                <button class="ap-btn ap-btn--contact" onclick="showSupportChoice('chat')" style="position:relative;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  Nhắn tin với người thân
+                  <span id="guestUnreadBadge" class="ap-badge ap-badge--red" style="display:none;"></span>
+                </button>
+                <button class="ap-btn ap-btn--report" onclick="document.getElementById('reportModal').style.display='flex'">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                  Báo cáo bài viết
+                </button>
+              </div>
+            </div>
+
+            <!-- OWNER: Resolve + Mailboxes -->
+            <div id="ownerActions" style="display:none; flex-direction:column; gap:10px;">
+              <button class="ap-btn ap-btn--resolve" onclick="showResolveModal()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                Đánh dấu đã tìm thấy
+              </button>
+              <button class="ap-btn ap-btn--clue" id="btnClueMailbox" onclick="openOwnerClues()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/>
+                </svg>
+                Hộp thư manh mối
+                <span class="ap-badge" id="clueBadge" style="display:none;"></span>
+              </button>
+              <button class="ap-btn ap-btn--chat" id="btnChatMailbox" onclick="openOwnerChats()">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Hộp thư tin nhắn
+                <span class="ap-badge ap-badge--red" id="unreadBadge" style="display:none;"></span>
+              </button>
+            </div>
+          </div>
+        }
+        @if (isFound)
+        {
+          <div class="ap-panel">
+            <div class="ap-status-banner found">
+              <span class="ap-pulse"></span>
+              ĐÃ TÌM THẤY
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- ── RIGHT ── -->
+      <div class="mp-detail-right">
+        <h1 class="mp-detail-name">@Model.FullName</h1>
+        <p class="mp-detail-time">Đăng lúc @Model.CreatedAt.ToString("HH:mm dd/MM/yyyy")</p>
+
+        <div class="mp-info-section">
+          <h3>Thông tin cơ bản</h3>
+          <div class="mp-info-grid">
+            @if (!string.IsNullOrEmpty(age))
+            { <div class="mp-info-item"><span class="mp-info-label">Tuổi</span><span class="mp-info-value">@age tuổi</span></div> }
+            @if (!string.IsNullOrEmpty(gender))
+            { <div class="mp-info-item"><span class="mp-info-label">Giới tính</span><span class="mp-info-value">@gender</span></div> }
+            @if (!string.IsNullOrEmpty(height) && height != "")
+            { <div class="mp-info-item"><span class="mp-info-label">Chiều cao</span><span class="mp-info-value">@height cm</span></div> }
+            <div class="mp-info-item"><span class="mp-info-label">Địa điểm mất tích</span><span class="mp-info-value">@Model.LastSeenLocation</span></div>
+          </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(feature))
+        {
+          <div class="mp-info-section">
+            <h3>Đặc điểm nhận dạng</h3>
+            <p class="mp-detail-text">@feature</p>
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(content))
+        {
+          <div class="mp-info-section">
+            <h3>Nội dung bài viết</h3>
+            <p class="mp-detail-text">@content</p>
+          </div>
+        }
+
+        @if (!string.IsNullOrEmpty(contact))
+        {
+          <div class="mp-info-section mp-contact-box">
+            <h3>Thông tin liên hệ</h3>
+            <p class="mp-contact-info">@contact</p>
+          </div>
+        }
+
+        @if (Model.User != null)
+        {
+          <div class="mp-info-section">
+            <h3>Người đăng bài</h3>
+            <p>@Model.User.FullName</p>
+          </div>
+        }
+
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ══ MODAL: Gửi manh mối (Chức năng 3) ══ -->
+<div class="mp-modal-overlay" id="clueModal" style="display:none;">
+  <div class="mp-modal">
+    <div class="mp-modal-header">
+      <h3>Gửi manh mối</h3>
+      <button class="mp-modal-close" onclick="closeClueForm()">✕</button>
+    </div>
+    <div class="mp-modal-body" style="padding:20px; overflow-y:auto; max-height:75vh;">
+      <form id="submitClueForm" onsubmit="submitClueData(event)">
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:5px;">Địa điểm thấy <span class="required">*</span></label>
+          <input type="text" id="clueLocation" class="mp-input" required placeholder="VD: Công viên 29/3, Đà Nẵng">
+        </div>
+        <!-- BẢN ĐỒ CHỌN VỊ TRÍ -->
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <div style="position:relative;">
+            <div id="clueMap" style="height:240px;border-radius:12px;border:1.5px solid #e5e7eb;overflow:hidden;z-index:1;"></div>
+            <button type="button" id="btnClueMyLocation"
+              style="position:absolute;top:10px;right:10px;z-index:999;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12);display:flex;align-items:center;gap:5px;">
+              Vị trí của tôi
+            </button>
+          </div>
+          <p style="font-size:12px;color:#9ca3af;margin-top:6px;">Click lên bản đồ để đặt pin nơi thấy người. Địa chỉ sẽ tự động điền.</p>
+          <div id="clueCoordDisplay" style="font-size:12px;color:#6b7280;margin-top:4px;"></div>
+        </div>
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:5px;">Thời gian thấy <span class="required">*</span></label>
+          <input type="datetime-local" id="clueSeenAt" class="mp-input" required>
+        </div>
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:5px;">Mô tả chi tiết <span class="required">*</span></label>
+          <textarea id="clueContent" class="mp-input mp-textarea" required rows="3" placeholder="Mô tả đặc điểm người đó..."></textarea>
+        </div>
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:5px;">Ảnh (không bắt buộc)</label>
+          <input type="file" id="cluePhoto" class="mp-input" accept="image/*">
+        </div>
+        <div class="mp-form-group" style="margin-bottom:12px;">
+          <label style="font-weight:bold; font-size:0.85rem; display:block; margin-bottom:5px;">Số điện thoại</label>
+          <input type="text" id="cluePhone" class="mp-input" placeholder="VD: 0905123456">
+          <input type="hidden" id="clueIsAnon" value="false">
+        </div>
+        <div class="mp-form-footer" style="padding:15px 0 0; border-top:1px solid #f3f4f6; margin-top:20px;">
+          <button type="submit" class="mp-btn-submit" id="btnSubmitClue">Gửi manh mối</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Hộp thư manh mối (Owner) ══ -->
+<div class="mp-modal-overlay" id="ownerCluesModal" style="display:none;">
+  <div class="mp-modal">
+    <div class="mp-modal-header">
+      <h3 id="clueTitle">Manh mối đã nhận</h3>
+      <button class="mp-modal-close" onclick="document.getElementById('ownerCluesModal').style.display='none'">✕</button>
+    </div>
+    <div class="mp-modal-body" style="padding:15px 15px 30px; overflow-y:auto; max-height:75vh; background:#f8fafc;">
+      <div id="clueList" class="mp-clue-list">
+        <p class="mp-loading">Đang tải...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Hộp thư tin nhắn (Owner) ══ -->
+<div class="mp-modal-overlay" id="ownerChatsModal" style="display:none;">
+  <div class="mp-modal">
+    <div class="mp-modal-header">
+      <h3 id="chatRoomTitle">Hộp thư tin nhắn</h3>
+      <button class="mp-modal-close" onclick="document.getElementById('ownerChatsModal').style.display='none'">✕</button>
+    </div>
+    <div class="mp-modal-body" style="padding:15px 15px 30px; overflow-y:auto; max-height:75vh; background:#f8fafc;">
+      <div id="chatRoomList" class="mp-clue-list">
+        <p class="mp-loading">Đang tải tin nhắn...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Lựa chọn chế độ Hỗ trợ ══ -->
+<div class="mp-modal-overlay" id="supportChoiceModal" style="display:none;">
+    <div class="mp-modal mp-modal--sm">
+        <div class="mp-modal-header">
+            <h3>Chế độ hỗ trợ</h3>
+            <button class="mp-modal-close" onclick="document.getElementById('supportChoiceModal').style.display='none'">✕</button>
+        </div>
+        <div class="mp-modal-body" style="padding:24px; text-align:center;">
+            <p style="margin-bottom:20px; color:#64748b;">Bạn muốn hỗ trợ với tư cách nào?</p>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <button onclick="startSupport(false)" style="padding:14px; border-radius:12px; border:2px solid #e2e8f0; background:#fff; font-weight:700; cursor:pointer; transition:all 0.2s;">
+                    Công khai
+                </button>
+                <button onclick="startSupport(true)" style="padding:14px; border-radius:12px; border:2px solid var(--mp-teal); background:#f0fdfa; color:var(--mp-teal); font-weight:700; cursor:pointer; transition:all 0.2s;">
+                    Ẩn danh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="chatModal" class="floating-chat-box" style="display:none;">
+    <div class="fc-header">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="fc-back-btn" id="fcBackBtn" style="display:none;" onclick="fcBack()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style="width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg, #0d9488, #0f766e); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:14px;">M</div>
+        <h3 id="chatModalTitle" style="font-size:15px; margin:0; color:#111827; font-weight:600;">Liên hệ</h3>
+      </div>
+      <button class="fc-close" onclick="closeChat()">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Chat messages area -->
+    <div class="mp-chat-messages" id="chatMessages" style="flex:1; background:#fff; padding:15px; overflow-y:auto;">
+      <div class="mp-chat-empty" style="color:#9ca3af; text-align:center; margin-top:20px; font-size:13px;">Bắt đầu trò chuyện...</div>
+    </div>
+
+    <!-- Input area -->
+    <input type="hidden" id="chatIsAnon" value="false" />
+    <div class="mp-chat-input-area" style="padding:12px; border-top:1px solid #f3f4f6; background:#fff; display:flex; gap:10px; align-items:flex-end;">
+      <textarea id="chatInput" class="mp-chat-input" placeholder="Nhắn tin..." rows="1" style="border-radius:20px; padding:10px 16px; min-height:40px; border:1px solid #e5e7eb; background:#f9fafb; flex:1; outline:none; resize:none; font-family:inherit; font-size:14px; max-height:80px; user-select: text;"></textarea>
+      <button class="mp-chat-send-btn mp-chat-send" onclick="sendMessage()" id="chatSendBtn">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+</div>
+
+<style>
+.floating-chat-box {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 350px;
+    height: 480px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 4px 12px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    z-index: 999999;
+    overflow: hidden;
+    animation: slideUp .3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1px solid #f3f4f6;
+}
+.fc-header {
+    background: #fff;
+    border-bottom: 1px solid #f3f4f6;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.fc-close, .fc-back-btn {
+    background: none; border: none; cursor: pointer; color: #9ca3af;
+    display: flex; align-items: center; justify-content: center; padding:4px; border-radius:50%; transition:all .2s;
+}
+.fc-close:hover, .fc-back-btn:hover { color: #111827; background: #f3f4f6; }
+@@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Override global missing.css rules for floating chat */
+.floating-chat-box .mp-chat-msg {
+    margin-bottom:12px; display:flex; flex-direction:column;
+    max-width:100% !important; /* Override missing.css max-width:75% */
+    align-self: stretch !important; /* Prevent shrink-to-content from base CSS */
+}
+.floating-chat-box .mp-chat-msg.mine { align-items:flex-end; }
+.floating-chat-box .mp-chat-msg.mine .mp-chat-bubble {
+    background:#3b82f6; color:#fff; border-radius:18px 18px 4px 18px;
+    padding:10px 14px; max-width:85%; font-size:14px;
+    width:fit-content; word-break:normal !important; overflow-wrap:break-word;
+}
+.floating-chat-box .mp-chat-msg.theirs { align-items:flex-start; }
+.floating-chat-box .mp-chat-msg.theirs .mp-chat-bubble {
+    background:#f3f4f6; color:#111827; border-radius:18px 18px 18px 4px;
+    padding:10px 14px; max-width:85%; font-size:14px;
+    width:fit-content; word-break:normal !important; overflow-wrap:break-word;
+}
+.floating-chat-box .mp-chat-sender { display:none; }
+.floating-chat-box .mp-chat-time { font-size:10px; color:#9ca3af; margin-top:4px; margin-bottom:0; }
+.mp-chat-send-btn {
+    width:36px; height:36px; border-radius:50%; border:none;
+    background:#0d9488; color:#fff; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    transition:background 0.2s;
+}
+.mp-chat-send-btn:hover { background:#0f766e; }
+.mp-chat-send-btn:disabled { background:#94a3b8; cursor:not-allowed; }
+</style>
+
+<!-- ══ MODAL: Xác nhận đã tìm thấy (Chức năng 5) ══ -->
+<div class="mp-modal-overlay" id="resolveModal" style="display:none;">
+  <div class="mp-modal mp-modal--sm">
+    <div class="mp-modal-header">
+      <h3>Xác nhận đã tìm thấy</h3>
+      <button class="mp-modal-close" onclick="document.getElementById('resolveModal').style.display='none'">✕</button>
+    </div>
+    <div class="mp-modal-body">
+      <p>Bạn xác nhận đã tìm thấy <strong>@Model.FullName</strong>?</p>
+      <p style="color:#64748b;font-size:0.88rem;">Sau khi xác nhận, bài đăng sẽ chuyển sang màu xanh và chức năng gửi manh mối sẽ bị khóa.</p>
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end;">
+        <button class="mp-btn-cancel" onclick="document.getElementById('resolveModal').style.display='none'">Hủy</button>
+        <form asp-action="MarkResolved" asp-route-id="@personId" method="post" style="margin:0;">
+          @Html.AntiForgeryToken()
+          <button type="submit" class="mp-btn-submit">Xác nhận</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: Báo cáo bài viết ══ -->
+<div class="mp-modal-overlay" id="reportModal" style="display:none;">
+  <div class="mp-modal mp-modal--sm">
+    <div class="mp-modal-header">
+      <h3 style="color:#ef4444;">Báo cáo bài viết</h3>
+      <button class="mp-modal-close" onclick="document.getElementById('reportModal').style.display='none'">✕</button>
+    </div>
+    <div class="mp-modal-body">
+      <p style="margin-bottom:15px;font-size:0.95rem;color:#475569;">Tại sao bạn muốn báo cáo bài viết này?</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="reportReason" value="Spam hoặc lừa đảo"> Spam hoặc lừa đảo</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="reportReason" value="Thông tin sai lệch"> Thông tin sai lệch</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="reportReason" value="Ngôn từ kích động"> Ngôn từ kích động thù địch</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="reportReason" value="Khác" id="reportReasonOther"> Lý do khác</label>
+      </div>
+      <textarea id="reportDetails" rows="3" style="width:100%;margin-top:10px;padding:8px;border:1px solid #cbd5e1;border-radius:6px;display:none;font-family:inherit;font-size:0.9rem;" placeholder="Vui lòng cung cấp thêm thông tin..."></textarea>
+      
+      <div style="display:flex;gap:12px;margin-top:20px;justify-content:flex-end;">
+        <button class="mp-btn-cancel" onclick="document.getElementById('reportModal').style.display='none'">Hủy</button>
+        <button class="mp-btn-submit" id="btnSubmitReport" onclick="submitReport()" style="background:#ef4444;border:none;">Gửi báo cáo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+<script>
+// ─── Constants ────────────────────────────────────────────────────────
+const PERSON_ID = @personId;
+const OWNER_ID  = @ownerId;
+let currentRoomId = null;
+let pollingInterval = null;
+let currentUserId = null;
+
+// ─── Init ─────────────────────────────────────────────────────────────
+(function init() {
+    try {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!user) return;
+        currentUserId = user.id;
+
+        // Nếu là owner → hiện nút "Đánh dấu đã tìm thấy" + load manh mối
+        if (currentUserId == OWNER_ID) {
+            document.getElementById('ownerActions')?.style && (document.getElementById('ownerActions').style.display = 'flex');
+            
+            // Ẩn nút gửi manh mối & chat vì chính chủ không tự nhắn cho mình
+            const guestActions = document.getElementById('guestActions');
+            if (guestActions) guestActions.style.display = 'none';
+
+            loadClues();
+            loadChatRooms();
+        }
+    } catch(e) {}
+})();
+
+// ─── CHỨC NĂNG 5: Xác nhận đã tìm thấy ──────────────────────────────
+function showResolveModal() {
+    document.getElementById('resolveModal').style.display = 'flex';
+}
+
+// ─── CHỨC NĂNG 3: GỬI MANH MỐI BẰNG FORM ──────────
+// Helper: lấy datetime-local string theo giờ LOCAL (không phải UTC)
+function toLocalISOString(date) {
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+// ─── BẢN ĐỒ MANH MỐI (Goong Maps) ──────────────────────────────────────
+const CLUE_DA_NANG = [108.2022, 16.0544]; // Goong dùng [lng, lat]
+const GOONG_MAPTILE_KEY = '@(ViewData["GoongMaptileKey"] ?? "sfw9xpNCp9G2dBHRWjpwlZtqChqERNuY630PzDxz")';
+const GOONG_REST_KEY    = '@(ViewData["GoongRestApiKey"]  ?? "ErytwUjKWLhkn1xLjOMvRsK27m9XjEAblcGL785z")';
+let clueMap    = null;
+let clueMarker = null;
+
+function initClueMap() {
+    if (clueMap) { clueMap.resize(); return; }
+    goongjs.accessToken = GOONG_MAPTILE_KEY;
+    clueMap = new goongjs.Map({
+        container: 'clueMap',
+        style: 'https://tiles.goong.io/assets/goong_map_web.json',
+        center: CLUE_DA_NANG,
+        zoom: 13
+    });
+
+    // Click bản đồ → đặt pin + reverse geocode
+    clueMap.on('click', function(e) {
+        setClueMarker(e.lngLat.lat, e.lngLat.lng);
+    });
+
+    // Nút "Vị trí của tôi"
+    document.getElementById('btnClueMyLocation').addEventListener('click', function() {
+        const btn = this;
+        btn.textContent = 'Đang lấy vị trí...';
+        navigator.geolocation.getCurrentPosition(
+            pos => {
+                const { latitude: lat, longitude: lng } = pos.coords;
+                clueMap.flyTo({ center: [lng, lat], zoom: 15 });
+                setClueMarker(lat, lng);
+                btn.textContent = 'Đã lấy vị trí';
+            },
+            () => {
+                alert('Không thể lấy vị trí. Hãy cho phép trình duyệt truy cập GPS.');
+                btn.textContent = 'Vị trí của tôi';
+            }
+        );
+    });
+
+    // Geocode khi gõ ô địa điểm
+    let clueGeoTimer = null;
+    document.getElementById('clueLocation').addEventListener('input', function() {
+        clearTimeout(clueGeoTimer);
+        const q = this.value.trim();
+        if (q.length < 4) return;
+        clueGeoTimer = setTimeout(() => {
+            fetch(`https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_REST_KEY}&input=${encodeURIComponent(q + ', Đà Nẵng')}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.predictions && data.predictions.length > 0) {
+                        const placeId = data.predictions[0].place_id;
+                        fetch(`https://rsapi.goong.io/Place/Detail?place_id=${placeId}&api_key=${GOONG_REST_KEY}`)
+                            .then(r => r.json())
+                            .then(detail => {
+                                const loc = detail.result?.geometry?.location;
+                                if (loc) {
+                                    clueMap.flyTo({ center: [loc.lng, loc.lat], zoom: 15 });
+                                    setClueMarker(loc.lat, loc.lng, true);
+                                }
+                            }).catch(() => {});
+                    }
+                }).catch(() => {});
+        }, 700);
+    });
+}
+
+function setClueMarker(lat, lng, skipReverse = false) {
+    if (clueMarker) {
+        clueMarker.setLngLat([lng, lat]);
+    } else {
+        clueMarker = new goongjs.Marker({ draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(clueMap);
+        clueMarker.on('dragend', function() {
+            const pos = clueMarker.getLngLat();
+            setClueMarker(pos.lat, pos.lng);
+        });
+    }
+    const coordEl = document.getElementById('clueCoordDisplay');
+    coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+    if (!skipReverse) {
+        coordEl.textContent = 'Đang tìm địa chỉ...';
+        fetch(`https://rsapi.goong.io/Geocode?latlng=${lat},${lng}&api_key=${GOONG_REST_KEY}`)
+            .then(r => r.json())
+            .then(data => {
+                const addr = data.results?.[0]?.formatted_address;
+                if (addr) {
+                    document.getElementById('clueLocation').value = addr;
+                }
+                coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            })
+            .catch(() => { coordEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; });
+    }
+}
+
+async function submitClueData(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitClue');
+    btn.disabled = true;
+    btn.textContent = 'Đang gửi...';
+
+    const location = document.getElementById('clueLocation').value;
+    const seenAt = document.getElementById('clueSeenAt').value;
+    const content = document.getElementById('clueContent').value;
+    const phone = document.getElementById('cluePhone').value;
+    const photo = document.getElementById('cluePhoto').files[0];
+    const isAnon = document.getElementById('clueIsAnon').value === 'true';
+
+    if (new Date(seenAt) >= new Date()) {
+        alert("Thời gian thấy phải ở trong quá khứ!");
+        btn.disabled = false; btn.textContent = 'Gửi manh mối';
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('MissingPersonId', PERSON_ID);
+    formData.append('SeenLocation', location);
+    formData.append('SeenAt', seenAt);
+    formData.append('Content', content);
+    formData.append('Phone', phone);
+    formData.append('IsAnonymous', isAnon);
+    if (photo) formData.append('Photo', photo);
+
+    try {
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': 'Bearer ' + token } : {};
+        
+        const res = await fetch('/Clue/Submit', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (res.ok) {
+            alert('Cảm ơn bạn đã gửi manh mối!');
+            closeClueForm();
+            document.getElementById('submitClueForm').reset();
+            if (currentUserId == OWNER_ID) loadClues();
+        } else {
+            // Đọc text trước, parse JSON nếu được — tránh throw khi server trả HTML lỗi
+            const text = await res.text();
+            let msg = 'Vui lòng kiểm tra lại thông tin.';
+            try { const err = JSON.parse(text); msg = err.error || msg; } catch {}
+            alert('Lỗi ' + res.status + ': ' + msg);
+        }
+    } catch (e) {
+        alert('Lỗi mạng: ' + (e?.message || 'Không thể gửi manh mối!'));
+    }
+    btn.disabled = false; btn.textContent = 'Gửi manh mối';
+}
+
+let supportType = 'clue'; // 'clue' or 'chat'
+
+function showSupportChoice(type) {
+    supportType = type;
+    // Nếu là chủ bài đăng thì không cần hỏi (luôn công khai)
+    if (currentUserId == OWNER_ID) {
+        if (type === 'clue') openClueForm(false);
+        else openChat(false);
+        return;
+    }
+
+    if (type === 'chat') {
+        // Kiểm tra đã từng chọn chế độ chưa
+        const saved = localStorage.getItem(`chat_anon_${PERSON_ID}_${currentUserId}`);
+        if (saved !== null) {
+            // Đã có phiên trước, vào thẳng chat
+            openChat(saved === 'true');
+            return;
+        }
+    }
+
+    document.getElementById('supportChoiceModal').style.display = 'flex';
+}
+
+function startSupport(isAnon) {
+    document.getElementById('supportChoiceModal').style.display = 'none';
+    if (supportType === 'chat') {
+        // Lưu lựa chọn vào localStorage để những lần sau không hỏi lại
+        localStorage.setItem(`chat_anon_${PERSON_ID}_${currentUserId}`, isAnon);
+        openChat(isAnon);
+    } else {
+        openClueForm(isAnon);
+    }
+}
+
+function openClueForm(isAnon = false) {
+    document.getElementById('clueIsAnon').value = isAnon;
+    document.getElementById('clueModal').style.display = 'flex';
+    // Khởi tạo bản đồ sau khi modal hiển thị (cần timeout đủ dài)
+    setTimeout(() => {
+        if (!clueMap) {
+            initClueMap();
+        } else {
+            clueMap.invalidateSize();
+        }
+    }, 300);
+}
+
+function closeClueForm() {
+    document.getElementById('clueModal').style.display = 'none';
+    // Goong Maps: remove và reset để lần sau init lại sạch
+    if (clueMap) {
+        clueMap.remove();
+        clueMap = null;
+        clueMarker = null;
+    }
+}
+async function openChat(isAnon = false) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        alert('Bạn cần đăng nhập để liên hệ!');
+        window.location.href = '/Auth/Login';
+        return;
+    }
+
+    // Tạo/mở phòng chat
+    const res = await fetch('/api/chat/open-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ missingPersonId: PERSON_ID })
+    });
+
+    if (!res.ok) { 
+        if (res.status === 401) {
+            alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+            localStorage.removeItem('token');
+            window.location.href = '/Auth/Login';
+        } else {
+            alert('Không thể mở chat, vui lòng thử lại sau'); 
+        }
+        return; 
+    }
+
+    const data = await res.json();
+    currentRoomId = data.roomId;
+
+    document.getElementById('chatIsAnon').value = isAnon;
+    document.getElementById('chatModal').style.display = 'flex';
+    document.getElementById('chatModalTitle').innerHTML = `Liên hệ`;
+    document.getElementById('fcBackBtn').style.display = 'none';
+    await loadMessages();
+
+    // Bắt đầu polling 5s
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(loadMessages, 3000);
+
+    // Đánh dấu đã đọc
+    markRead();
+}
+
+function closeChat() {
+    document.getElementById('chatModal').style.display = 'none';
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+}
+
+async function loadMessages() {
+    if (!currentRoomId) return;
+    const token = localStorage.getItem('token');
+
+    const res = await fetch(`/api/chat/messages/${currentRoomId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) return;
+
+    const msgs = await res.json();
+    const container = document.getElementById('chatMessages');
+
+    if (!msgs.length) {
+        container.innerHTML = '<div class="mp-chat-empty">Bắt đầu bằng cách gửi thông tin bạn biết về người này...</div>';
+        return;
+    }
+
+
+    // Xử lý ẩn danh 1, 2... dựa trên senderId trong phòng hiện tại
+    const anonMap = {};
+    let anonCounter = 1;
+
+    container.innerHTML = msgs.map(m => {
+        const isMine = m.senderId == currentUserId;
+        let displayName = m.senderName;
+        let finalMsg = m.message;
+
+        if (m.message.startsWith('[ANON]')) {
+            finalMsg = m.message.replace('[ANON]', '');
+            if (!isMine) {
+                if (!anonMap[m.senderId]) {
+                    anonMap[m.senderId] = anonCounter++;
+                }
+                displayName = `Người ẩn danh ${anonMap[m.senderId]}`;
+            } else {
+                displayName = "Bạn (Ẩn danh)";
+            }
+        }
+
+        return `<div class="mp-chat-msg ${isMine ? 'mine' : 'theirs'}">
+            <div class="mp-chat-bubble">${escapeHtml(finalMsg)}</div>
+            <span class="mp-chat-time">${m.sentAt}</span>
+        </div>`;
+    }).join('');
+
+    container.scrollTop = container.scrollHeight;
+}
+
+let isSending = false;
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function appendLocalMessage(text) {
+    const container = document.getElementById('chatMessages');
+    if (!container) return;
+
+    const empty = container.querySelector('.mp-chat-empty');
+    if (empty) empty.remove();
+
+    const row = document.createElement('div');
+    row.className = 'mp-chat-msg mine';
+    row.innerHTML = `
+        <div class="mp-chat-bubble">${escapeHtml(text)}</div>
+        <span class="mp-chat-time">Đang gửi...</span>
+    `;
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+}
+
+async function sendMessage() {
+    if (isSending) return;
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('chatSendBtn');
+    const text = input.value.trim();
+
+    if (!text || !currentRoomId) return;
+
+    const isAnon = document.getElementById('chatIsAnon').value === 'true';
+    const finalPayload = isAnon ? '[ANON]' + text : text;
+
+    isSending = true;
+    input.value = '';
+    input.style.height = '40px'; // reset textarea hề height
+    if (sendBtn) sendBtn.disabled = true;
+    appendLocalMessage(text);
+
+    try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/chat/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ roomId: currentRoomId, message: finalPayload })
+        });
+        if (res.ok) {
+            loadMessages();
+        } else {
+            console.error('Gửi thất bại:', res.status);
+        }
+    } catch (e) {
+        console.error("Lỗi khi gửi:", e);
+    } finally {
+        isSending = false;
+        if (sendBtn) sendBtn.disabled = false;
+        input.focus();
+    }
+}
+
+// Enter để gửi (Shift+Enter = xuống dòng)
+document.getElementById('chatInput')?.addEventListener('keydown', function(e) {
+    if (e.isComposing || e.keyCode === 229) return; // Fix lỗi tiếng Việt
+    
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        sendMessage();
+        return false;
+    }
+});
+
+async function markRead() {
+    if (!currentRoomId) return;
+    const token = localStorage.getItem('token');
+    await fetch(`/api/chat/mark-read/${currentRoomId}`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+}
+
+// ─── CHỨC NĂNG 3: Load manh mối (chỉ owner) ─────────────────────────
+async function loadClues() {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/Clue/GetClues/${PERSON_ID}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+        const list = document.getElementById('clueList');
+        if (list) list.innerHTML = '<p style="color:#ef4444;">Không tải được manh mối. Vui lòng thử lại.</p>';
+        return;
+    }
+
+    const clues = await res.json();
+    const title = document.getElementById('clueTitle');
+    const list  = document.getElementById('clueList');
+
+    title.textContent = `Manh mối đã nhận (${clues.length})`;
+    // Cập nhật badge trên nút Hộp thư manh mối
+    const clueBadge = document.getElementById('clueBadge');
+    if (clueBadge) {
+        if (clues.length > 0) { clueBadge.textContent = clues.length; clueBadge.style.display = 'flex'; }
+        else { clueBadge.style.display = 'none'; }
+    }
+
+    if (!clues.length) {
+        list.innerHTML = '<p style="color:#94a3b8;">Chưa có manh mối nào.</p>';
+        return;
+    }
+
+    list.innerHTML = clues.map(c => `
+        <div class="mp-clue-item">
+            <div class="mp-clue-meta">
+                <span class="mp-clue-sender">${c.senderName}</span>
+                <span class="mp-clue-time">${new Date(c.createdAt).toLocaleString('vi-VN')}</span>
+            </div>
+            
+            <div class="mp-clue-info-row">
+                ${c.seenAt ? `
+                    <div class="mp-clue-info-item">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        Thấy lúc: <strong>${c.seenAt}</strong>
+                    </div>` : ''}
+                ${c.location ? `
+                    <div class="mp-clue-info-item">
+                        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Địa điểm: <strong>${c.location}</strong>
+                    </div>` : ''}
+            </div>
+
+            <div class="mp-clue-content">${c.content}</div>
+
+            <div class="mp-clue-footer">
+                ${c.phone ? `
+                    <div class="mp-clue-info-item">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        ${c.phone}
+                    </div>` : '<span>Gửi ẩn danh</span>'}
+            </div>
+            
+            ${c.imageUrl ? `<img src="${c.imageUrl}" style="max-width:100%;border-radius:10px;margin-top:4px;border:1px solid #f1f5f9;" />` : ''}
+        </div>
+    `).join('');
+}
+
+// ─── CHỨC NĂNG 4: Danh sách phòng chat (cho chủ bài) ──────────────────
+async function loadChatRooms(silentUpdate = false) {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`/api/chat/rooms/${PERSON_ID}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) {
+        const list = document.getElementById('chatRoomList');
+        if (!silentUpdate && list) list.innerHTML = '<p style="color:#ef4444;">Không tải được tin nhắn. Vui lòng thử lại.</p>';
+        return;
+    }
+
+    const rooms = await res.json();
+    
+    // Nếu silentUpdate = true và list chưa thay đổi thẻ count thì bỏ qua để khỏi giật màn hình
+    const list = document.getElementById('chatRoomList');
+    const currentCount = list.children.length;
+    if (silentUpdate && currentCount === rooms.length && rooms.length > 0) return;
+
+    const title = document.getElementById('chatRoomTitle');
+    
+    if (!rooms.length) {
+        list.innerHTML = '<p style="color:#94a3b8;">Chưa có người nào nhắn tin cung cấp manh mối.</p>';
+        return;
+    }
+    // Đánh số ẩn danh per phòng dựa vào userId trích từ tên phòng
+    const anonRoomMap = {};
+    let anonRoomCounter = 1;
+
+    list.innerHTML = rooms.map(r => {
+        // Tên phòng: MP_{mpId}_U_{userId}
+        let displayName = r.name;
+        const parts = (r.name || '').split('_');
+        const isAnonymousRoom = r.firstMsgAnon; // sẽ cập nhật sau khi có API
+
+        // Tạm thời: dùng userId trích từ tên phòng để đánh số
+        const senderPart = parts.length >= 4 ? parts[3] : null;
+        if (senderPart) {
+            if (!anonRoomMap[senderPart]) {
+                anonRoomMap[senderPart] = anonRoomCounter++;
+            }
+            displayName = r.senderName || `Người ẩn danh ${anonRoomMap[senderPart]}`;
+        } else {
+            displayName = r.senderName || 'Ẩn danh';
+        }
+
+        return `
+        <div class="mp-clue-item" style="cursor:pointer; border-left:3px solid var(--mp-teal);" onclick="openChatRoom(${r.id}, '${displayName}')">
+            <div class="mp-clue-meta" style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="mp-clue-sender">${displayName}</span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    ${r.unreadCount > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:20px; padding:2px 8px; font-size:11px; font-weight:700;">${r.unreadCount} mới</span>` : ''}
+                    <span class="mp-clue-time">${new Date(r.createdAt).toLocaleString('vi-VN')}</span>
+                </div>
+            </div>
+            <div style="color:var(--mp-teal); font-weight:700; margin-top:8px; display:flex; gap:6px; align-items:center;">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Bấm để mở tin nhắn
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openOwnerClues() {
+    document.getElementById('ownerCluesModal').style.display = 'flex';
+    const list = document.getElementById('clueList');
+    if (list) list.innerHTML = '<p class="mp-loading">Đang tải...</p>';
+    loadClues();
+}
+
+function openOwnerChats() {
+    document.getElementById('ownerChatsModal').style.display = 'flex';
+    const list = document.getElementById('chatRoomList');
+    if (list) list.innerHTML = '<p class="mp-loading">Đang tải tin nhắn...</p>';
+    loadChatRooms();
+}
+
+async function openChatRoom(roomId, displayName) {
+    currentRoomId = roomId;
+    document.getElementById('ownerChatsModal').style.display = 'none';
+    document.getElementById('chatModal').style.display = 'flex';
+    document.getElementById('chatModalTitle').innerHTML = displayName || 'Người ẩn danh';
+    document.getElementById('fcBackBtn').style.display = 'flex';
+    await loadMessages();
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(loadMessages, 3000);
+    markRead();
+}
+
+function fcBack() {
+    closeChat();
+    document.getElementById('ownerChatsModal').style.display = 'flex';
+}
+// Polling Global
+setInterval(async () => {
+    if (currentUserId == OWNER_ID) {
+        checkUnreadOwner();
+        loadChatRooms(true);
+    } else if (currentUserId && currentRoomId) {
+        // Guest: kiểm tra tin chưa đọc từ owner
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/chat/unread-me/${currentRoomId}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const badge = document.getElementById('guestUnreadBadge');
+            if (badge) {
+                if (data.count > 0) {
+                    badge.textContent = data.count > 9 ? '9+' : data.count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    }
+}, 5000);
+
+async function checkUnreadOwner() {
+    const token = localStorage.getItem('token');
+    if(!token) return;
+    const res = await fetch(`/api/chat/check-unread?missingPersonIds=${PERSON_ID}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+        const data = await res.json();
+        const badge = document.getElementById('unreadBadge');
+        if (badge) {
+            if (data.count > 0) {
+                badge.textContent = data.count > 9 ? '9+' : data.count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    }
+}
+
+// ======= Hash routing cho Notifications =======
+function handleHashRouting() {
+    const hash = window.location.hash;
+    if (hash === '#chat') {
+        if (currentUserId == OWNER_ID) {
+            openOwnerChats();
+        } else {
+            showSupportChoice('chat');
+        }
+    } else if (hash === '#clues') {
+        if (currentUserId == OWNER_ID) {
+            openOwnerClues();
+        } else {
+            showSupportChoice('clue');
+        }
+    }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(handleHashRouting, 500);
+});
+
+window.addEventListener('hashchange', handleHashRouting);
+
+// ======= Báo cáo bài viết =======
+document.querySelectorAll('input[name="reportReason"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const detailsObj = document.getElementById('reportDetails');
+        if (e.target.value === 'Khác') {
+            detailsObj.style.display = 'block';
+        } else {
+            detailsObj.style.display = 'none';
+        }
+    });
+});
+
+async function submitReport() {
+    const btn = document.getElementById('btnSubmitReport');
+    const reasonEl = document.querySelector('input[name="reportReason"]:checked');
+    if (!reasonEl) {
+        alert("Vui lòng chọn lý do báo cáo.");
+        return;
+    }
+    const reason = reasonEl.value;
+    let details = "";
+    if (reason === 'Khác') {
+        details = document.getElementById('reportDetails').value.trim();
+        if (!details) {
+            alert("Vui lòng cung cấp thêm thông tin.");
+            return;
+        }
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Đang gửi...";
+
+    try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/Reports', {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                targetId: PERSON_ID,
+                targetType: 'MissingPerson',
+                reason: reason,
+                details: details
+            })
+        });
+
+        if (res.ok) {
+            alert("Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét sớm nhất.");
+            document.getElementById('reportModal').style.display = 'none';
+        } else {
+            alert("Có lỗi xảy ra khi gửi báo cáo.");
+        }
+    } catch (e) {
+        alert("Lỗi kết nối.");
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Gửi báo cáo";
+    }
+}
+</script>
+}

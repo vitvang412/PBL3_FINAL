@@ -1,0 +1,216 @@
+﻿commit 306ac2f92adc0958219f6ba2f56d23ebe6ec4956
+Author: vitvang412 <hang290806@gmail.com>
+Date:   Fri May 15 15:46:16 2026 +0700
+
+     add tin tức
+
+diff --git a/Views/Home/Index.cshtml b/Views/Home/Index.cshtml
+new file mode 100644
+index 0000000..4af77d0
+--- /dev/null
++++ b/Views/Home/Index.cshtml
+@@ -0,0 +1,203 @@
++﻿@{
++    ViewData["Title"] = "Trang chủ";
++}
++
++<div class="dsm-page hr-light-theme">
++
++    <!-- ══════════════ HERO ══════════════ -->
++    <section class="hero">
++        <div class="hero__bg" style="background-image: url('/images/redesign/golden_bridge.jpg');"></div>
++        <div class="hero__overlay" style="background: linear-gradient(135deg, rgba(0, 137, 123, .82) 0%, rgba(0, 137, 123, .55) 60%, rgba(0, 137, 123, .3) 100%);"></div>
++        <div class="hero__content">
++            <div class="hero__badge"><span></span> Hệ thống bản đồ số trực tuyến</div>
++            <h1 class="hero__title">DaNang <em>SafeMap</em></h1>
++            <p class="hero__sub">Hệ thống bản đồ số tích hợp dữ liệu không gian đô thị cảnh báo an ninh và hỗ trợ cộng đồng.</p>
++            <div class="hero__cta">
++                <a asp-controller="Map" asp-action="Index" class="btn-hero-primary">
++                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
++                    XEM BẢN ĐỒ
++                </a>
++                <a asp-controller="Article" asp-action="Index" class="btn-hero-secondary">
++                    TIN TỨC
++                </a>
++            </div>
++        </div>
++
++        <!-- Stats floating bar -->
++        <div class="hr-stats-float">
++            <div class="hr-stats-float__item">
++                <div class="stat-number" data-target="1284">0</div>
++                <div class="stat-label">Người đã tìm thấy</div>
++            </div>
++            <div class="hr-stats-float__divider"></div>
++            <div class="hr-stats-float__item">
++                <div class="stat-number" data-target="85">0</div>
++                <div class="stat-label">Cảnh báo hôm nay</div>
++            </div>
++            <div class="hr-stats-float__divider"></div>
++            <div class="hr-stats-float__item">
++                <div class="stat-number" data-target="12400">0</div>
++                <div class="stat-label">Lượt truy cập</div>
++            </div>
++            <div class="hr-stats-float__divider"></div>
++            <div class="hr-stats-float__item">
++                <div class="stat-number" data-target="100" data-suffix="%">0</div>
++                <div class="stat-label">Độ tin cậy</div>
++            </div>
++        </div>
++    </section>
++
++    <!-- ══════════════ SECTION 1: BẢN ĐỒ ══════════════ -->
++    <section class="hr-sec-light">
++        <div class="hr-container hr-territory-v2">
++            <div class="hr-map-graphic-v2">
++                <img src="~/images/redesign/map_user_download.png" alt="User Provided Map" />
++            </div>
++            <div class="hr-desc-box">
++                <h2 class="hr-title-v1">Bản đồ</h2>
++                <p class="hr-desc-v1">
++                    Hệ thống bản đồ số tích hợp dữ liệu không gian đô thị của khu vực Đà Nẵng và các vùng phụ cận. 
++                    Giúp người dân và du khách dễ dàng tiếp cận các thông tin an ninh, giao thông và các khu vực hỗ trợ cộng đồng một cách trực quan và chính xác nhất.
++                </p>
++                <div style="margin-top: 30px;">
++                    <a asp-controller="Map" asp-action="Index" class="hr-btn-v1">Truy cập bản đồ</a>
++                </div>
++            </div>
++        </div>
++
++        <div class="hr-wave hr-wave--bottom hr-wave--bg-light">
++            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
++                <path d="M0,64L48,80C96,96,192,128,288,128C384,128,480,96,576,85.3C672,75,768,85,864,96C960,107,1056,117,1152,106.7C1248,96,1344,64,1392,48L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
++            </svg>
++        </div>
++    </section>
++
++    <!-- ══════════════ SECTION 2: TIN TỨC ══════════════ -->
++    <section class="hr-sec-light hr-actualites">
++        <div class="hr-container">
++            <div class="hr-actualites__image">
++                <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1200&q=80" alt="Da Nang News" />
++            </div>
++            <div class="hr-actualites__card">
++                <h2 class="hr-title-v1" style="font-size: 32px;">Tin tức</h2>
++                <p class="hr-desc-v1">
++                    Cập nhật nhanh nhất các thông tin cảnh báo an ninh, giao thông và các sự kiện cộng đồng nổi bật tại thành phố Đà Nẵng.
++                </p>
++                <a asp-controller="Article" asp-action="Index" class="hr-btn-v1">Xem tin tức</a>
++            </div>
++        </div>
++
++        <div class="hr-wave hr-wave--bottom">
++            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
++                <path d="M0,96L48,85.3C96,75,192,53,288,53.3C384,53,480,75,576,80C672,85,768,75,864,58.7C960,43,1056,21,1152,16C1248,11,1344,64,1392,90.7L1440,117.3L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
++            </svg>
++        </div>
++    </section>
++
++    <!-- ══════════════ SECTION 3: TÌM KIẾM NGƯỜI THÂN ══════════════ -->
++    <section class="hr-sec-light">
++        <div class="hr-container">
++            <div class="hr-gazette">
++                <div class="hr-gazette__text">
++                    <h2 class="hr-title-v1">Tìm kiếm người thân</h2>
++                    <p class="hr-desc-v1">
++                        Hỗ trợ cộng đồng tìm kiếm người thất lạc. 
++                        Đăng tải thông tin và kết nối sức mạnh tập thể để mang mọi người trở về nhà an toàn.
++                    </p>
++                    <a asp-controller="MissingPerson" asp-action="Index" class="hr-btn-v1 hr-btn-white-v1">Xem chi tiết</a>
++                </div>
++                <div class="hr-gazette__preview">
++                    <img src="~/images/redesign/gazette_pbl3.png" alt="PBL3 Gazette" />
++                </div>
++            </div>
++        </div>
++    </section>
++
++    <!-- ══════════════ SECTION 4: NHỮNG NƠI NÊN ĐẾN ══════════════ -->
++    <section class="hr-sec-light hr-destinations">
++        <div class="hr-container" style="flex-direction: column; gap: 40px;">
++            <div style="text-align: center;">
++                <h2 class="hr-title-v1">Những nơi nên đến ở Đà Nẵng</h2>
++                <p class="hr-desc-v1" style="max-width: 600px; margin: 0 auto;">Khám phá những điểm đến hấp dẫn và an toàn tại thành phố đáng sống nhất Việt Nam.</p>
++            </div>
++            <div class="hr-dest-grid">
++                <div class="hr-dest-card">
++                    <div class="hr-dest-card__img">
++                        <img src="https://images.unsplash.com/photo-1570868738828-26764a58cdba?w=600&q=80" alt="Cầu Vàng" />
++                    </div>
++                    <div class="hr-dest-card__body">
++                        <h3>Cầu Vàng</h3>
++                        <p>Biểu tượng du lịch nổi tiếng thế giới nằm trên đỉnh Bà Nà Hills, mang đến trải nghiệm tuyệt vời giữa mây trời.</p>
++                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
++                    </div>
++                </div>
++                <div class="hr-dest-card">
++                    <div class="hr-dest-card__img">
++                        <img src="https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&q=80" alt="Bãi biển Mỹ Khê" />
++                    </div>
++                    <div class="hr-dest-card__body">
++                        <h3>Bãi biển Mỹ Khê</h3>
++                        <p>Một trong những bãi biển đẹp nhất hành tinh theo bình chọn của Forbes, với bờ cát trắng trải dài.</p>
++                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
++                    </div>
++                </div>
++                <div class="hr-dest-card">
++                    <div class="hr-dest-card__img">
++                        <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&q=80" alt="Ngũ Hành Sơn" />
++                    </div>
++                    <div class="hr-dest-card__body">
++                        <h3>Ngũ Hành Sơn</h3>
++                        <p>Danh thắng nổi tiếng với hệ thống hang động, chùa chiền và tầm nhìn toàn cảnh thành phố từ trên cao.</p>
++                        <a href="#" class="hr-dest-card__btn">Tìm hiểu thêm</a>
++                    </div>
++                </div>
++            </div>
++        </div>
++
++        <!-- Wave divider for curvy transition -->
++        <div class="hr-wave hr-wave--bottom">
++            <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
++                <path d="M0,96L48,85.3C96,75,192,53,288,53.3C384,53,480,75,576,80C672,85,768,75,864,58.7C960,43,1056,21,1152,16C1248,11,1344,64,1392,90.7L1440,117.3L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
++            </svg>
++        </div>
++    </section>
++
++    <!-- ══════════════ FOOTER ══════════════ -->
++    @await Html.PartialAsync("_SiteFooter")
++
++</div>
++
++@section Scripts {
++    <script>
++        document.addEventListener("DOMContentLoaded", () => {
++            const stats = document.querySelectorAll('.stat-number');
++            const observer = new IntersectionObserver((entries, observer) => {
++                entries.forEach(entry => {
++                    if (entry.isIntersecting) {
++                        const target = +entry.target.getAttribute('data-target');
++                        const suffix = entry.target.getAttribute('data-suffix') || '';
++                        let count = 0;
++                        const duration = 2000;
++                        const increment = target / (duration / 16);
++
++                        const updateCount = () => {
++                            count += increment;
++                            if (count < target) {
++                                entry.target.innerText = Math.ceil(count).toLocaleString() + suffix;
++                                requestAnimationFrame(updateCount);
++                            } else {
++                                entry.target.innerText = target.toLocaleString() + suffix;
++                            }
++                        };
++                        updateCount();
++                        observer.unobserve(entry.target);
++                    }
++                });
++            }, { threshold: 0.5 });
++
++            stats.forEach(stat => {
++                observer.observe(stat);
++            });
++        });
++    </script>
++}
+\ No newline at end of file

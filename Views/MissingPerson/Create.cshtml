@@ -1,0 +1,271 @@
+@model DaNangSafeMap.Models.ViewModels.MissingPerson.CreateMissingPersonViewModel
+@{
+    ViewData["Title"] = "Đăng Tin Tìm Người";
+}
+
+<link rel="stylesheet" href="~/css/missing.css" asp-append-version="true" />
+<link href="https://cdn.jsdelivr.net/npm/@@goongmaps/goong-js@1.0.9/dist/goong-js.css" rel="stylesheet" />
+
+<div class="mp-create-page">
+    <div class="mp-create-card">
+        <div class="mp-create-header">
+            <a href="/MissingPerson" class="mp-back-btn">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                Quay lại
+            </a>
+            <h1>Đăng Tin Tìm Người</h1>
+            <p>Vui lòng điền đầy đủ thông tin để cộng đồng có thể hỗ trợ tìm kiếm</p>
+        </div>
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="mp-alert mp-alert--error">@TempData["Error"]</div>
+        }
+
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="mp-form">
+            @Html.AntiForgeryToken()
+
+            <!-- Thông tin người mất tích -->
+            <div class="mp-form-section">
+                <h2 class="mp-form-section__title">Thông tin người mất tích</h2>
+
+                <div class="mp-form-row">
+                    <div class="mp-form-group">
+                        <label asp-for="FullName">Họ và tên <span class="required">*</span></label>
+                        <input asp-for="FullName" class="mp-input" placeholder="Nguyễn Văn A" />
+                        <span asp-validation-for="FullName" class="mp-error"></span>
+                    </div>
+                    <div class="mp-form-group">
+                        <label asp-for="Gender">Giới tính <span class="required">*</span></label>
+                        <select asp-for="Gender" class="mp-input">
+                            <option value="">-- Chọn giới tính --</option>
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                            <option value="Khác">Khác</option>
+                        </select>
+                        <span asp-validation-for="Gender" class="mp-error"></span>
+                    </div>
+                </div>
+
+                <div class="mp-form-row">
+                    <div class="mp-form-group">
+                        <label asp-for="Age">Tuổi <span class="required">*</span></label>
+                        <input asp-for="Age" type="number" class="mp-input" min="0" max="150" placeholder="25" />
+                        <span asp-validation-for="Age" class="mp-error"></span>
+                    </div>
+                    <div class="mp-form-group">
+                        <label asp-for="Height">Chiều cao (cm)</label>
+                        <input asp-for="Height" type="number" class="mp-input" min="50" max="250" placeholder="165" />
+                        <span asp-validation-for="Height" class="mp-error"></span>
+                    </div>
+                </div>
+
+                <div class="mp-form-group">
+                    <label asp-for="Features">Đặc điểm nhận dạng</label>
+                    <textarea asp-for="Features" class="mp-input mp-textarea" rows="3"
+                        placeholder="Mô tả đặc điểm: tóc dài, có sẹo ở tay trái, mặc áo xanh..."></textarea>
+                    <span asp-validation-for="Features" class="mp-error"></span>
+                </div>
+
+                <div class="mp-form-group">
+                    <label asp-for="LastSeenLocation">Địa điểm mất tích <span class="required">*</span></label>
+                    <input asp-for="LastSeenLocation" class="mp-input"
+                        placeholder="VD: Chợ Hàn, Đà Nẵng" id="locationInput" />
+                    <span asp-validation-for="LastSeenLocation" class="mp-error"></span>
+                </div>
+
+                <!-- MAP PICKER -->
+                <div class="mp-form-group">
+                    <label>Chọn vị trí trên bản đồ <span style="color:#9ca3af;font-weight:400;font-size:13px;">(tuỳ chọn – giúp tính năng "Gần vị trí tôi" hoạt động)</span></label>
+                    <div style="position:relative;">
+                        <div id="locationMap" style="height:280px;border-radius:12px;border:1.5px solid #e5e7eb;overflow:hidden;z-index:1;"></div>
+                        <button type="button" id="btnMyLocation"
+                            style="position:absolute;top:10px;right:10px;z-index:999;background:#fff;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.12);display:flex;align-items:center;gap:5px;">
+                            Vị trí của tôi
+                        </button>
+                    </div>
+                    <p style="font-size:12px;color:#9ca3af;margin-top:6px;">Click lên bản đồ để đặt pin vị trí mất tích. Mặc định căn giữa Đà Nẵng.</p>
+                    <!-- Hidden fields lưu tọa độ -->
+                    <input type="hidden" asp-for="Latitude"  id="hiddenLat" />
+                    <input type="hidden" asp-for="Longitude" id="hiddenLng" />
+                    <div id="coordDisplay" style="font-size:12px;color:#6b7280;margin-top:4px;"></div>
+                </div>
+            </div>
+
+            <!-- Upload ảnh -->
+            <div class="mp-form-section">
+                <h2 class="mp-form-section__title">Ảnh nhận dạng <span class="required">*</span></h2>
+                <div class="mp-upload-zone" id="uploadZone">
+                    <input asp-for="Photo" type="file" class="mp-file-input" id="photoInput"
+                           accept="image/*" />
+                    <div class="mp-upload-preview" id="uploadPreview">
+                        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <p>Kéo thả ảnh hoặc <strong>bấm để chọn</strong></p>
+                        <small>Chấp nhận JPG, PNG, WEBP. Tối đa 5MB</small>
+                    </div>
+                    <img id="previewImg" style="display:none; max-height:200px; border-radius:12px;" alt="Preview" />
+                </div>
+                <span asp-validation-for="Photo" class="mp-error"></span>
+            </div>
+
+            <!-- Liên hệ & Nội dung -->
+            <div class="mp-form-section">
+                <h2 class="mp-form-section__title">Thông tin liên hệ & Bài viết</h2>
+
+                <div class="mp-form-group">
+                    <label asp-for="ContactInfo">Thông tin liên hệ <span class="required">*</span></label>
+                    <input asp-for="ContactInfo" class="mp-input"
+                        placeholder="Số điện thoại: 0901234567 hoặc email liên hệ" />
+                    <span asp-validation-for="ContactInfo" class="mp-error"></span>
+                </div>
+
+                <div class="mp-form-group">
+                    <label asp-for="Description">Nội dung bài viết</label>
+                    <textarea asp-for="Description" class="mp-input mp-textarea" rows="5"
+                        placeholder="Mô tả chi tiết hoàn cảnh mất tích, thời gian, những nơi thường lui tới..."></textarea>
+                    <span asp-validation-for="Description" class="mp-error"></span>
+                </div>
+            </div>
+
+            <div class="mp-form-footer">
+                <p class="mp-notice">Bài đăng sẽ hiển thị công khai ngay sau khi đăng</p>
+                <div class="mp-form-actions">
+                    <a href="/MissingPerson" class="mp-btn-cancel">Hủy</a>
+                    <button type="submit" class="mp-btn-submit">
+                        <svg viewBox="0 0 24 24"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        Đăng bài tìm người
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@goongmaps/goong-js@1.0.9/dist/goong-js.js"></script>
+<script>
+// ===== Preview ảnh khi chọn =====
+const photoInput    = document.getElementById('photoInput');
+const previewImg    = document.getElementById('previewImg');
+const uploadPreview = document.getElementById('uploadPreview');
+
+photoInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            previewImg.src = e.target.result;
+            previewImg.style.display = 'block';
+            uploadPreview.style.display = 'none';
+        };
+        reader.readAsDataURL(this.files[0]);
+    }
+});
+document.getElementById('uploadZone').addEventListener('click', function(e) {
+    if (e.target !== photoInput) photoInput.click();
+});
+
+// ===== GOONG MAPS MAP PICKER =====
+const GOONG_MAPTILE = '@(ViewData["GoongMaptileKey"] ?? "sfw9xpNCp9G2dBHRWjpwlZtqChqERNuY630PzDxz")';
+const GOONG_REST    = '@(ViewData["GoongRestApiKey"]  ?? "ErytwUjKWLhkn1xLjOMvRsK27m9XjEAblcGL785z")';
+
+goongjs.accessToken = GOONG_MAPTILE;
+const map = new goongjs.Map({
+    container: 'locationMap',
+    style: 'https://tiles.goong.io/assets/goong_map_web.json',
+    center: [108.2022, 16.0544],
+    zoom: 13
+});
+
+let marker         = null;
+const locationInput = document.getElementById('locationInput');
+const hiddenLat     = document.getElementById('hiddenLat');
+const hiddenLng     = document.getElementById('hiddenLng');
+const coordDisplay  = document.getElementById('coordDisplay');
+
+// --- Đặt pin và lưu tọa độ ---
+function setMarker(lat, lng, skipReverseGeocode = false) {
+    if (marker) {
+        marker.setLngLat([lng, lat]);
+    } else {
+        marker = new goongjs.Marker({ draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(map);
+        marker.on('dragend', function() {
+            const pos = marker.getLngLat();
+            setMarker(pos.lat, pos.lng);
+        });
+    }
+    hiddenLat.value = lat.toFixed(6);
+    hiddenLng.value = lng.toFixed(6);
+    coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    if (!skipReverseGeocode) reverseGeocode(lat, lng);
+}
+
+// --- Click bản đồ → đặt pin ---
+map.on('click', function(e) {
+    setMarker(e.lngLat.lat, e.lngLat.lng);
+});
+
+// --- Reverse geocode: tọa độ → địa chỉ ---
+function reverseGeocode(lat, lng) {
+    coordDisplay.textContent = 'Đang tìm địa chỉ...';
+    fetch(`https://rsapi.goong.io/Geocode?latlng=${lat},${lng}&api_key=${GOONG_REST}`)
+        .then(r => r.json())
+        .then(data => {
+            const addr = data.results?.[0]?.formatted_address;
+            if (addr) locationInput.value = addr;
+            coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        })
+        .catch(() => { coordDisplay.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`; });
+}
+
+// --- Geocode: ô text → tọa độ, di chuyển bản đồ ---
+let geocodeTimer = null;
+locationInput.addEventListener('input', function() {
+    clearTimeout(geocodeTimer);
+    const q = this.value.trim();
+    if (q.length < 4) return;
+    geocodeTimer = setTimeout(() => {
+        coordDisplay.textContent = 'Đang tìm vị trí...';
+        fetch(`https://rsapi.goong.io/Place/AutoComplete?api_key=${GOONG_REST}&input=${encodeURIComponent(q + ', Đà Nẵng')}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.predictions && data.predictions.length > 0) {
+                    const placeId = data.predictions[0].place_id;
+                    fetch(`https://rsapi.goong.io/Place/Detail?place_id=${placeId}&api_key=${GOONG_REST}`)
+                        .then(r => r.json())
+                        .then(detail => {
+                            const loc = detail.result?.geometry?.location;
+                            if (loc) {
+                                map.flyTo({ center: [loc.lng, loc.lat], zoom: 15 });
+                                setMarker(loc.lat, loc.lng, true);
+                                coordDisplay.textContent = `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}`;
+                            }
+                        }).catch(() => {});
+                } else {
+                    coordDisplay.textContent = 'Không tìm thấy địa điểm, hãy click trực tiếp lên bản đồ';
+                }
+            })
+            .catch(() => { coordDisplay.textContent = ''; });
+    }, 700);
+});
+
+// --- Nút "Vị trí của tôi" ---
+document.getElementById('btnMyLocation').addEventListener('click', function() {
+    const btn = this;
+    btn.textContent = 'Đang lấy vị trí...';
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const { latitude: lat, longitude: lng } = pos.coords;
+            map.flyTo({ center: [lng, lat], zoom: 15 });
+            setMarker(lat, lng);
+            btn.textContent = 'Đã lấy vị trí';
+        },
+        () => {
+            alert('Không thể lấy vị trí. Hãy cho phép trình duyệt truy cập GPS.');
+            btn.textContent = 'Vị trí của tôi';
+        }
+    );
+});
+</script>
+}

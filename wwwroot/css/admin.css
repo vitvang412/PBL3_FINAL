@@ -178,10 +178,11 @@ body {
 .top-navbar {
     background: #FFF;
     height: 70px;
-    padding: 0 30px;
+    padding: 0 25px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
@@ -205,7 +206,7 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--primary-light);
     color: white;
     display: flex;
     align-items: center;
