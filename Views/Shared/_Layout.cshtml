@@ -12,6 +12,83 @@
 </head>
 <body>
     @Html.AntiForgeryToken()
+    <style>
+        .dsm-app-alert {
+            position: fixed;
+            inset: 0;
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(10, 21, 18, 0.38);
+            backdrop-filter: blur(4px);
+        }
+        .dsm-app-alert.open {
+            display: flex;
+        }
+        .dsm-app-alert__panel {
+            width: min(460px, 100%);
+            border: 1px solid rgba(255,255,255,0.7);
+            border-radius: 22px;
+            background: #ffffff;
+            box-shadow: 0 24px 60px rgba(8, 24, 19, 0.2);
+            overflow: hidden;
+        }
+        .dsm-app-alert__head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px 12px;
+        }
+        .dsm-app-alert__icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 14px;
+            color: #0f766e;
+            background: #e6f8f4;
+            flex-shrink: 0;
+        }
+        .dsm-app-alert__icon svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+        .dsm-app-alert__title {
+            color: #18312b;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        .dsm-app-alert__body {
+            padding: 0 20px 20px;
+            color: #5f746d;
+            font-size: 15px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+        }
+        .dsm-app-alert__foot {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 20px 20px;
+        }
+        .dsm-app-alert__btn {
+            min-width: 94px;
+            min-height: 42px;
+            border: 0;
+            border-radius: 14px;
+            color: #fff;
+            background: linear-gradient(135deg, #0d9488, #0f766e);
+            font: inherit;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+    </style>
 
     <!-- ══════════ NAVBAR ══════════ -->
     <nav class="dsm-nav">
@@ -123,7 +200,69 @@
         @RenderBody()
     </div>
 
+    <div class="dsm-app-alert" id="dsmAppAlert" aria-hidden="true">
+        <div class="dsm-app-alert__panel" role="alertdialog" aria-modal="true" aria-labelledby="dsmAppAlertTitle" aria-describedby="dsmAppAlertBody">
+            <div class="dsm-app-alert__head">
+                <div class="dsm-app-alert__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                </div>
+                <div class="dsm-app-alert__title" id="dsmAppAlertTitle">Thông báo</div>
+            </div>
+            <div class="dsm-app-alert__body" id="dsmAppAlertBody"></div>
+            <div class="dsm-app-alert__foot">
+                <button type="button" class="dsm-app-alert__btn" id="dsmAppAlertOk">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+    // ── App alert dialog ──────────────────────────────────────────────────
+    (function () {
+        var overlay = document.getElementById('dsmAppAlert');
+        var body = document.getElementById('dsmAppAlertBody');
+        var okBtn = document.getElementById('dsmAppAlertOk');
+        if (!overlay || !body || !okBtn) return;
+
+        var previousAlert = window.alert ? window.alert.bind(window) : null;
+        var onClose = null;
+
+        function closeAlert() {
+            overlay.classList.remove('open');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            if (typeof onClose === 'function') {
+                var cb = onClose;
+                onClose = null;
+                cb();
+            }
+        }
+
+        window.showAppAlert = function (message, callback) {
+            body.textContent = message || '';
+            onClose = typeof callback === 'function' ? callback : null;
+            overlay.classList.add('open');
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function () { okBtn.focus(); }, 0);
+        };
+
+        window.alert = function (message) {
+            if (window.showAppAlert) {
+                window.showAppAlert(message);
+                return;
+            }
+            if (previousAlert) previousAlert(message);
+        };
+
+        okBtn.addEventListener('click', closeAlert);
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) closeAlert();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && overlay.classList.contains('open')) closeAlert();
+        });
+    })();
+
     // ── Auth state from localStorage ──────────────────────────────────────
     (function () {
         try {
@@ -318,52 +457,5 @@
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 
-    <!-- ══════════ AGENTATION INTEGRATION ══════════ -->
-    <!-- Import Map: khai báo nguồn cho các ESM dependency -->
-    <script type="importmap">
-    {
-        "imports": {
-            "react":            "https://esm.sh/react@18.3.1?dev",
-            "react-dom":        "https://esm.sh/react-dom@18.3.1?dev",
-            "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?dev",
-            "react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime?dev"
-        }
-    }
-    </script>
-    <script type="module">
-        import React from 'react';
-        import ReactDOM from 'react-dom/client';
-        import { Agentation } from 'https://esm.sh/agentation@3.0.2?deps=react@18.3.1,react-dom@18.3.1&dev';
-
-        console.log('[Agentation] Script module bắt đầu chạy');
-
-        // Thêm badge trạng thái
-        const badge = document.createElement('div');
-        badge.id = 'agentation-status-check';
-        badge.style.cssText = 'position:fixed;top:70px;right:20px;background:#2563eb;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;z-index:2147483647;font-family:sans-serif;box-shadow:0 4px 12px rgba(0,0,0,.25);';
-        badge.textContent = '⏳ Đang nạp Agentation...';
-        document.body.appendChild(badge);
-
-        try {
-            // Container cho Agentation
-            const container = document.createElement('div');
-            container.id = 'agentation-root';
-            container.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2147483646;';
-            document.body.appendChild(container);
-
-            const root = ReactDOM.createRoot(container);
-            root.render(React.createElement(Agentation, { copyToClipboard: true }));
-
-            badge.style.background = '#059669';
-            badge.textContent = '✅ Agentation sẵn sàng!';
-            console.log('[Agentation] Render thành công');
-
-            setTimeout(() => { badge.remove(); }, 5000);
-        } catch (err) {
-            badge.style.background = '#dc2626';
-            badge.textContent = '❌ ' + err.message;
-            console.error('[Agentation] Lỗi khởi tạo:', err);
-        }
-    </script>
 </body>
 </html>

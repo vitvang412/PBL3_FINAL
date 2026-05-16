@@ -1,4 +1,4 @@
-﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    ARTICLE.CSS â€” Phong cĂ¡ch BĂ¡o ÄĂ  Náºµng
    â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
@@ -11,18 +11,21 @@
     --art-text-secondary: #555;
     --art-text-muted: #888;
     --art-border: #e0e0e0;
-    --art-accent: #00897B;
-    --art-accent-dark: #00695C;
-    --art-accent-light: #26A69A;
-    --art-blue: #00897B;
-    --art-blue-light: #00695C;
-    --art-green: #00897B;
-    --art-orange: #00897B;
+    --art-accent: #0d9488;
+    --art-accent-dark: #0f766e;
+    --art-accent-light: #14b8a6;
+    --art-blue: #0d9488;
+    --art-blue-light: #0f766e;
+    --art-green: #0d9488;
+    --art-orange: #0d9488;
     --art-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     --art-max-w: 1200px;
     --art-serif: 'Be Vietnam Pro', sans-serif;
     --art-sans: 'Be Vietnam Pro', sans-serif;
     --art-radius: 6px;
+    --bdn-green: #0d9488;
+    --bdn-green-d: #0f766e;
+    --bdn-muted: #607D8B;
 }
 
 .article-page-wrapper {
@@ -48,8 +51,8 @@
 
 /* â”€â”€ SUB NAVIGATION â€” teal gradient matching site theme â”€â”€ */
 .art-subnav {
-    background: linear-gradient(90deg, #00695C 0%, #00897B 100%);
-    border-bottom: 3px solid #004d40;
+    background: linear-gradient(90deg, #0f766e 0%, #0d9488 100%);
+    border-bottom: 3px solid #115e59;
     position: sticky;
     top: 64px;
     z-index: 100;
@@ -110,20 +113,26 @@
 }
 
 .art-subnav-search__btn {
-    background: rgba(255, 255, 255, 0.22);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: #115e59;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 3px 10px;
-    border-radius: 12px;
+    padding: 4px 8px;
+    border-radius: 10px;
     cursor: pointer;
-    font-family: var(--art-sans);
-    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.art-subnav-search__btn svg {
+    stroke: #fff !important;
+    opacity: 1 !important;
 }
 
 .art-subnav-search__btn:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: #00897B;
+    border-color: #fff;
 }
 
 .art-subnav__right {

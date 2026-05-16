@@ -274,7 +274,7 @@ namespace DaNangSafeMap.Controllers
             await _articleService.CreateArticleAsync(article);
 
             if (role == "Admin") return RedirectToAction("Manage", "Article");
-            return RedirectToAction("Index", new { mode = "my" });
+            return RedirectToAction("Index");
         }
 
         // ══════════════════════════════════════════════

@@ -93,14 +93,14 @@ namespace DaNangSafeMap.Repositories
                     a.Latitude >= southLat && a.Latitude <= northLat &&
                     a.Longitude >= westLng && a.Longitude <= eastLng &&
                     (
-                        (a.Status == "VISIBLE_VERIFIED" && a.IncidentTime >= from) ||
-                        (a.Status == "VISIBLE_UNVERIFIED" && a.IncidentTime >= from) ||
-                        (a.Status == "RESOLVED" && a.IncidentTime >= from) ||
-                        (includeHidden && a.Status == "HIDDEN" && a.IncidentTime >= from) ||
-                        (includeHidden && a.Status == "NEEDS_MORE_INFO" && a.IncidentTime >= from) ||
-                        (includeHidden && a.Status == "NOT_ENOUGH_EVIDENCE" && a.IncidentTime >= from) ||
-                        (includeHidden && a.Status == "REJECTED" && a.IncidentTime >= from) ||
-                        (includeHidden && a.Status == "EXPIRED" && a.IncidentTime >= from)
+                        (a.Status == "VISIBLE_VERIFIED" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (a.Status == "VISIBLE_UNVERIFIED" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (a.Status == "RESOLVED" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (includeHidden && a.Status == "HIDDEN" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (includeHidden && a.Status == "NEEDS_MORE_INFO" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (includeHidden && a.Status == "NOT_ENOUGH_EVIDENCE" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (includeHidden && a.Status == "REJECTED" && a.IncidentTime >= from && a.IncidentTime <= to) ||
+                        (includeHidden && a.Status == "EXPIRED" && a.IncidentTime >= from && a.IncidentTime <= to)
                     )
                 )
                 .OrderByDescending(a => a.DisplayPriority)
@@ -113,11 +113,13 @@ namespace DaNangSafeMap.Repositories
             DateTime fromTime, DateTime toTime)
         {
             var from = fromTime.Kind == DateTimeKind.Utc ? fromTime.ToLocalTime() : fromTime;
+            var to = toTime.Kind == DateTimeKind.Utc ? toTime.ToLocalTime() : toTime;
 
             return await _context.SecurityAlerts
                 .Where(a =>
-                    (a.Status == "VISIBLE_VERIFIED" && a.IncidentTime >= from) ||
-                    (a.Status == "VISIBLE_UNVERIFIED" && a.IncidentTime >= from)
+                    ((a.Status == "VISIBLE_VERIFIED" || a.Status == "VISIBLE_UNVERIFIED" || a.Status == "RESOLVED")
+                        && a.IncidentTime >= from
+                        && a.IncidentTime <= to)
                 )
                 .Select(a => new SecurityAlert
                 {
@@ -247,8 +249,11 @@ namespace DaNangSafeMap.Repositories
                 .Include(a => a.User)
                 .Include(a => a.Media.Where(m => m.IsActive))
                 .Include(a => a.Appeals)
-                .Where(a => a.Status == "PENDING_REVIEW")
-                .OrderBy(a => a.ReviewPriority == "HOT" && (a.ReviewDueAt == null || a.ReviewDueAt >= now) ? 0 : a.ReviewDueAt != null && a.ReviewDueAt < now ? 2 : 1)
+                .Where(a => a.Status == "PENDING_REVIEW" || a.Status == "VISIBLE_UNVERIFIED")
+                .OrderBy(a =>
+                    a.Status == "VISIBLE_UNVERIFIED"
+                        ? 0
+                        : (a.ReviewPriority == "HOT" && (a.ReviewDueAt == null || a.ReviewDueAt >= now) ? 1 : a.ReviewDueAt != null && a.ReviewDueAt < now ? 3 : 2))
                 .ThenBy(a => a.ReviewDueAt)
                 .ThenByDescending(a => a.DisplayPriority)
                 .ThenByDescending(a => a.CreatedAt)
@@ -272,7 +277,12 @@ namespace DaNangSafeMap.Repositories
             var now = DateTime.Now;
 
             return await query
-                .OrderBy(a => a.Status == "PENDING_REVIEW" ? (a.ReviewPriority == "HOT" && (a.ReviewDueAt == null || a.ReviewDueAt >= now) ? 0 : a.ReviewDueAt != null && a.ReviewDueAt < now ? 2 : 1) : 3)
+                .OrderBy(a =>
+                    a.Status == "VISIBLE_UNVERIFIED"
+                        ? 0
+                        : a.Status == "PENDING_REVIEW"
+                            ? (a.ReviewPriority == "HOT" && (a.ReviewDueAt == null || a.ReviewDueAt >= now) ? 1 : a.ReviewDueAt != null && a.ReviewDueAt < now ? 3 : 2)
+                            : 4)
                 .ThenBy(a => a.Status == "PENDING_REVIEW" ? a.ReviewDueAt : null)
                 .ThenByDescending(a => a.DisplayPriority)
                 .ThenByDescending(a => a.CreatedAt)

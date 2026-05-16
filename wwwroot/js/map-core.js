@@ -111,11 +111,58 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    function isCustomOverlayLayer(layer) {
+        if (!layer?.id) return false;
+        return /^(region-|satellite-layer|route-|safe-route-|alerts-|clusters-|user-proximity-)/i.test(layer.id);
+    }
+
+    function toggleStyleLayers(predicate, enabled) {
+        const layers = map.getStyle()?.layers || [];
+        const visibility = enabled ? 'visible' : 'none';
+        layers.forEach(layer => {
+            if (isCustomOverlayLayer(layer)) return;
+            if (!predicate(layer)) return;
+            if (layer.layout && Object.prototype.hasOwnProperty.call(layer.layout, 'visibility')) {
+                map.setLayoutProperty(layer.id, 'visibility', visibility);
+                return;
+            }
+            try {
+                map.setLayoutProperty(layer.id, 'visibility', visibility);
+            } catch (_) { }
+        });
+    }
+
+    function setLabelsMode(enabled) {
+        toggleStyleLayers(layer => {
+            if (layer.type !== 'symbol') return false;
+            return !!layer.layout?.['text-field'];
+        }, enabled);
+    }
+
+    function setPoiMode(enabled) {
+        toggleStyleLayers(layer => {
+            if (layer.type !== 'symbol') return false;
+            const name = `${layer.id} ${layer['source-layer'] || ''}`;
+            return /(poi|place|landmark|attraction|amenity)/i.test(name);
+        }, enabled);
+    }
+
+    function setRoadsMode(enabled) {
+        toggleStyleLayers(layer => {
+            if (layer.type !== 'line') return false;
+            const name = `${layer.id} ${layer['source-layer'] || ''}`;
+            return /(road|street|highway|bridge|tunnel|motorway|transport)/i.test(name);
+        }, enabled);
+    }
+
     window.MapLayers = {
         setSatellite: setSatelliteMode,
         toggleSatellite: () => setSatelliteMode(!isSatellite),
         isSatellite: () => isSatellite,
-        setBoundary: setBoundaryMode
+        setBoundary: setBoundaryMode,
+        setLabels: setLabelsMode,
+        setPoi: setPoiMode,
+        setRoads: setRoadsMode
     };
 
     if (btnToggleSat) {

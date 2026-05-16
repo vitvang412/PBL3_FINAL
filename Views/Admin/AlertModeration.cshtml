@@ -764,9 +764,9 @@ body {
     }
 
     function buildActionButtons(alert) {
-        if (alert.status === 'PENDING_REVIEW') {
+        if (alert.status === 'PENDING_REVIEW' || alert.status === 'VISIBLE_UNVERIFIED') {
             return `
-                <button class="btn-approve" onclick="runQuickAction('${API}/admin/${alert.id}/approve')">Duyệt hiển thị</button>
+                <button class="btn-approve" onclick="runQuickAction('${API}/admin/${alert.id}/approve')">${alert.status === 'VISIBLE_UNVERIFIED' ? 'Xác thực bài viết' : 'Duyệt hiển thị'}</button>
                 <button class="btn-request-info" onclick="openActionModal('${API}/admin/${alert.id}/request-info', 'Yêu cầu bổ sung bằng chứng', getNeedsMoreInfoDescription(), 'Yêu cầu bổ sung', true)">Yêu cầu bổ sung</button>
                 <button class="btn-insufficient" onclick="openActionModal('${API}/admin/${alert.id}/insufficient', 'Đánh dấu không đủ cơ sở', 'Báo cáo sẽ bị ẩn nhưng không bị phạt uy tín.', 'Không đủ cơ sở', true)">Không đủ cơ sở</button>
                 <button class="btn-reject" onclick="openActionModal('${API}/admin/${alert.id}/reject', 'Bác bỏ báo cáo', 'Hành động này sẽ trừ uy tín người gửi và mở quyền khiếu nại 24 giờ.', 'Bác bỏ', true)">Bác bỏ</button>

@@ -28,7 +28,7 @@ builder.Services.Configure<FormOptions>(options =>
 // ── 1. Cấu hình Database (MySQL) ──
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 31))));
 
 // ── 2. Cấu hình Repositories ──
 builder.Services.AddScoped<IUserRepository, UserRepository>();

@@ -25,9 +25,12 @@
 
         <div class="art-subnav__right">
             <form class="art-subnav-search" action="/Article" method="get" role="search">
-                <svg viewBox="0 0 24 24" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input id="subnav-search" name="q" type="text" placeholder="Tìm kiếm tin tức..." value="@q" autocomplete="off" />
-                <button type="submit" aria-label="Tìm kiếm" class="art-subnav-search__btn">Tìm</button>
+                <button type="submit" aria-label="Tìm kiếm" class="art-subnav-search__btn">
+                    <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                </button>
             </form>
             <div class="art-subnav-date" id="subnav-date"></div>
         </div>

@@ -53,9 +53,10 @@ namespace DaNangSafeMap.Services.Implementations
 
             if (exists == 0)
             {
-                await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(
-                    _db.Database,
-                    $"ALTER TABLE `Notifications` ADD COLUMN `{columnName}` {definition};");
+                // Note: Column names cannot be parameterized, but these are controlled internally.
+                // We use ExecuteSqlRawAsync with a concatenated string to avoid the interpolation warning.
+                var sql = "ALTER TABLE `Notifications` ADD COLUMN `" + columnName + "` " + definition + ";";
+                await _db.Database.ExecuteSqlRawAsync(sql);
             }
         }
 
@@ -65,15 +66,9 @@ namespace DaNangSafeMap.Services.Implementations
             await EnsureTableAsync();
 
             // Dùng raw SQL để tránh bất kỳ schema mismatch nào
-            var safeTitle   = title.Replace("'", "''");
-            var safeMessage = message.Replace("'", "''");
-            var safeType    = (type ?? "general").Replace("'", "''");
-            var safeLink    = link == null ? "NULL" : $"'{link.Replace("'", "''")}'";
-
-            await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(
-                _db.Database,
-                $@"INSERT INTO `Notifications` (`UserId`, `Title`, `Message`, `NotificationType`, `Type`, `Link`, `IsRead`, `CreatedAt`)
-                   VALUES ({userId}, '{safeTitle}', '{safeMessage}', '{safeType}', '{safeType}', {safeLink}, 0, NOW())");
+            await _db.Database.ExecuteSqlAsync($@"
+                INSERT INTO `Notifications` (`UserId`, `Title`, `Message`, `NotificationType`, `Type`, `Link`, `IsRead`, `CreatedAt`)
+                VALUES ({userId}, {title}, {message}, {type}, {type}, {link}, 0, NOW())");
         }
 
         // Lấy thông báo chưa đọc của user (tối đa 20)
@@ -98,8 +93,7 @@ namespace DaNangSafeMap.Services.Implementations
         public async Task MarkReadAsync(int id, int userId)
         {
             await EnsureTableAsync();
-            await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(
-                _db.Database,
+            await _db.Database.ExecuteSqlAsync(
                 $"UPDATE `Notifications` SET `IsRead` = 1 WHERE `Id` = {id} AND `UserId` = {userId}");
         }
 
@@ -107,8 +101,7 @@ namespace DaNangSafeMap.Services.Implementations
         public async Task MarkAllReadAsync(int userId)
         {
             await EnsureTableAsync();
-            await Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.ExecuteSqlRawAsync(
-                _db.Database,
+            await _db.Database.ExecuteSqlAsync(
                 $"UPDATE `Notifications` SET `IsRead` = 1 WHERE `UserId` = {userId}");
         }
 

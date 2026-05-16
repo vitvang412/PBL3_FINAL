@@ -1,5 +1,9 @@
 @model DaNangSafeMap.Models.Entities.MissingPerson
+@inject DaNangSafeMap.Services.Interfaces.IMissingPersonService MPService
 @{
+    var relatedVM = await MPService.SearchAsync(null, null, null, null, "newest", null);
+    var relatedItems = relatedVM.Items.Where(x => x.Id != Model.Id).Take(4).ToList();
+
     ViewData["Title"] = "Chi Tiết - " + Model.FullName;
 
     string GetDesc(string key) {
@@ -138,162 +142,359 @@
     line-height: 1;
 }
 .ap-badge--red { background: #ef4444; }
+
+/* New Detail Layout */
+.mp-dt-container {
+    max-width: 1050px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 20px;
+    padding: 32px 40px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.04);
+}
+.mp-dt-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 48px;
+}
+.mp-dt-photo {
+    width: 100%;
+    border-radius: 16px;
+    object-fit: cover;
+    aspect-ratio: 3/4;
+}
+.mp-dt-status {
+    background: #fff1f2;
+    border: 1px solid #ffe4e6;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.mp-dt-status-dot { width: 10px; height: 10px; background: #ef4444; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.mp-dt-status-title { font-weight: 800; color: #b91c1c; font-size: 15px; margin-bottom: 4px; }
+.mp-dt-status-desc { font-size: 13px; color: #9ca3af; margin: 0; }
+
+.mp-dt-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px;
+    cursor: pointer; margin-top: 12px; border: none; transition: all 0.2s;
+}
+.mp-dt-btn-blue { background: #eff6ff; color: #2563eb; }
+.mp-dt-btn-blue:hover { background: #dbeafe; }
+.mp-dt-btn-green { background: #f0fdf4; color: #16a34a; }
+.mp-dt-btn-green:hover { background: #dcfce7; }
+.mp-dt-btn-outline { background: #fff; border: 1px solid #e5e7eb; color: #6b7280; }
+.mp-dt-btn-outline:hover { background: #f9fafb; color: #374151; }
+
+.mp-dt-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    text-align: left;
+}
+.mp-dt-action-btn:hover { border-color: #059669; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.mp-dt-action-icon {
+    width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.mp-dt-action-icon--blue { background: #eff6ff; color: #2563eb; }
+.mp-dt-action-icon--green { background: #f0fdf4; color: #059669; }
+.mp-dt-action-icon--gray { background: #f3f4f6; color: #6b7280; }
+.mp-dt-action-title { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+.mp-dt-action-subtitle { font-size: 13px; color: #6b7280; margin: 0; }
+
+.mp-dt-header {
+    display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;
+}
+.mp-dt-name { font-size: 32px; font-weight: 800; color: #111827; margin: 0 0 8px; }
+.mp-dt-time { font-size: 14px; color: #9ca3af; margin: 0; }
+.mp-dt-save {
+    display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+    border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-weight: 600;
+    color: #4b5563; background: #fff; cursor: pointer; transition: all 0.2s; height: fit-content;
+}
+.mp-dt-save:hover { background: #f9fafb; color: #111827; }
+
+.mp-dt-section-title { font-size: 14px; font-weight: 800; color: #00695C; text-transform: uppercase; margin: 0 0 16px; letter-spacing: 0.5px; border-bottom: 1px solid #f3f4f6; padding-bottom: 12px; }
+
+.mp-dt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px; }
+.mp-dt-card {
+    border: 1px solid #f3f4f6; border-radius: 12px; padding: 16px;
+    display: flex; align-items: center; gap: 16px; background: #fff;
+}
+.mp-dt-card-icon { color: #9ca3af; flex-shrink: 0; }
+.mp-dt-card-label { font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+.mp-dt-card-val { font-size: 15px; font-weight: 600; color: #111827; margin: 0; }
+
+.mp-dt-text { font-size: 15px; color: #374151; line-height: 1.6; margin: 0 0 32px; }
+
+.mp-dt-contact {
+    background: #E0F2F1; border: 1px solid #B2DFDB; border-radius: 12px; padding: 20px;
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;
+}
+.mp-dt-contact-left { display: flex; align-items: center; gap: 16px; }
+.mp-dt-contact-icon { color: #00695C; }
+.mp-dt-contact-label { font-size: 11px; font-weight: 700; color: #00695C; text-transform: uppercase; margin-bottom: 4px; }
+.mp-dt-contact-val { font-size: 20px; font-weight: 800; color: #00695C; margin: 0; }
+.mp-dt-call-btn {
+    background: #B2DFDB; color: #004D40; border: none; border-radius: 8px;
+    padding: 10px 20px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; display: inline-block;
+}
+.mp-dt-call-btn:hover { background: #bbf7d0; }
+
+@@media (max-width: 768px) {
+    .mp-dt-layout { grid-template-columns: 1fr; }
+    .mp-dt-grid { grid-template-columns: 1fr; }
+}
 </style>
 
-<div class="mp-detail-page">
-  <div class="mp-detail-card">
-    <a href="/MissingPerson" class="mp-back-btn">
-        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-        Quay lại danh sách
-    </a>
+<div class="mp-dt-container">
+    <div style="margin-bottom: 16px;">
+        <a href="/MissingPerson" style="text-decoration: none; color: #6b7280; font-size: 14px; display: inline-flex; align-items: center; gap: 4px; transition: color 0.2s;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Quay lại danh sách
+        </a>
+    </div>
 
     @if (TempData["Success"] != null)
     {
-        <div class="mp-alert mp-alert--success">@TempData["Success"]</div>
+        <div class="mp-alert mp-alert--success" style="margin-bottom: 24px;">@TempData["Success"]</div>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="mp-alert mp-alert--error">@TempData["Error"]</div>
+        <div class="mp-alert mp-alert--error" style="margin-bottom: 24px;">@TempData["Error"]</div>
     }
 
-    <div class="mp-detail-layout">
-      <!-- ── LEFT ── -->
-      <div class="mp-detail-left">
-        <div class="mp-detail-photo">
-          @if (!string.IsNullOrEmpty(Model.ImageUrl))
-          { <img src="@Model.ImageUrl" alt="@Model.FullName" /> }
-          else
-          { <div class="mp-detail-no-photo">?</div> }
+    <div class="mp-dt-layout">
+        <!-- LEFT -->
+        <div>
+            @if (!string.IsNullOrEmpty(Model.ImageUrl))
+            {
+                <img src="@Model.ImageUrl" class="mp-dt-photo" alt="@Model.FullName" />
+            }
+            else
+            {
+                <div class="mp-dt-photo" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 40px;">?</div>
+            }
+
+            @if (isSearching)
+            {
+                <div class="mp-dt-status">
+                    <div class="mp-dt-status-dot"></div>
+                    <div>
+                        <div class="mp-dt-status-title">ĐANG TÌM KIẾM</div>
+                        <p class="mp-dt-status-desc">Mọi thông tin đều có ích. Cảm ơn bạn!</p>
+                    </div>
+                </div>
+
+                <div id="guestActions" style="margin-top: 16px;">
+                    <button class="mp-dt-action-btn" onclick="showSupportChoice('clue')">
+                        <div class="mp-dt-action-icon mp-dt-action-icon--blue">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        </div>
+                        <div class="mp-dt-action-text">
+                            <div class="mp-dt-action-title">Gửi manh mối</div>
+                            <div class="mp-dt-action-subtitle">Cung cấp thông tin nếu bạn biết</div>
+                        </div>
+                    </button>
+                    
+                    <button class="mp-dt-action-btn" onclick="showSupportChoice('chat')" style="position:relative;">
+                        <div class="mp-dt-action-icon mp-dt-action-icon--green">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                        </div>
+                        <div class="mp-dt-action-text">
+                            <div class="mp-dt-action-title">Nhắn tin với người thân</div>
+                            <div class="mp-dt-action-subtitle">Liên hệ người đăng bài</div>
+                        </div>
+                        <span id="guestUnreadBadge" class="ap-badge ap-badge--red" style="display:none;"></span>
+                    </button>
+                    
+                    <button class="mp-dt-action-btn" onclick="document.getElementById('reportModal').style.display='flex'">
+                        <div class="mp-dt-action-icon mp-dt-action-icon--gray">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                        </div>
+                        <div class="mp-dt-action-text">
+                            <div class="mp-dt-action-title">Báo cáo bài viết</div>
+                            <div class="mp-dt-action-subtitle">Thông báo nội dung không phù hợp</div>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="ownerActions" style="display:none; flex-direction:column;">
+                    <button class="mp-dt-btn mp-dt-btn-green" onclick="showResolveModal()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Đánh dấu đã tìm thấy
+                    </button>
+                    <button class="mp-dt-btn mp-dt-btn-blue" onclick="openOwnerClues()" style="position:relative;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+                        Hộp thư manh mối
+                        <span id="clueBadge" class="ap-badge" style="display:none; position:absolute; top:-5px; right:-5px;"></span>
+                    </button>
+                    <button class="mp-dt-btn mp-dt-btn-blue" onclick="openOwnerChats()" style="position:relative;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                        Hộp thư tin nhắn
+                        <span id="unreadBadge" class="ap-badge ap-badge--red" style="display:none; position:absolute; top:-5px; right:-5px;"></span>
+                    </button>
+                </div>
+            }
+            @if (isFound)
+            {
+                <div class="mp-dt-status" style="background: #f0fdf4; border-color: #dcfce7;">
+                    <div class="mp-dt-status-dot" style="background: #22c55e;"></div>
+                    <div>
+                        <div class="mp-dt-status-title" style="color: #16a34a;">ĐÃ TÌM THẤY</div>
+                        <p class="mp-dt-status-desc">Người mất tích đã được tìm thấy. Cảm ơn cộng đồng!</p>
+                    </div>
+                </div>
+            }
         </div>
 
-        <!-- ── ACTION PANEL ── -->
-        @if (isSearching)
-        {
-          <div class="ap-panel">
-            <!-- Status badge -->
-            <div class="ap-status-banner" id="apStatusBadge">
-              <span class="ap-pulse"></span>
-              ĐANG TÌM KIẾM
-            </div>
-
-            <!-- GUEST: Gửi manh mối + Chat -->
-            <div id="guestActions">
-              <div style="display:flex; flex-direction:column; gap:10px;">
-                <button class="ap-btn ap-btn--send-clue" onclick="showSupportChoice('clue')">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  Gửi manh mối
+        <!-- RIGHT -->
+        <div>
+            <div class="mp-dt-header">
+                <div>
+                    <h1 class="mp-dt-name">@Model.FullName</h1>
+                    <p class="mp-dt-time">Đăng lúc @Model.CreatedAt.ToString("HH:mm dd/MM/yyyy")</p>
+                </div>
+                <button class="mp-dt-save">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    Lưu tin
                 </button>
-                <button class="ap-btn ap-btn--contact" onclick="showSupportChoice('chat')" style="position:relative;">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
-                  Nhắn tin với người thân
-                  <span id="guestUnreadBadge" class="ap-badge ap-badge--red" style="display:none;"></span>
-                </button>
-                <button class="ap-btn ap-btn--report" onclick="document.getElementById('reportModal').style.display='flex'">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                    <line x1="12" y1="9" x2="12" y2="13"/>
-                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                  </svg>
-                  Báo cáo bài viết
-                </button>
-              </div>
             </div>
 
-            <!-- OWNER: Resolve + Mailboxes -->
-            <div id="ownerActions" style="display:none; flex-direction:column; gap:10px;">
-              <button class="ap-btn ap-btn--resolve" onclick="showResolveModal()">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                  <polyline points="22 4 12 14.01 9 11.01"/>
-                </svg>
-                Đánh dấu đã tìm thấy
-              </button>
-              <button class="ap-btn ap-btn--clue" id="btnClueMailbox" onclick="openOwnerClues()">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/>
-                </svg>
-                Hộp thư manh mối
-                <span class="ap-badge" id="clueBadge" style="display:none;"></span>
-              </button>
-              <button class="ap-btn ap-btn--chat" id="btnChatMailbox" onclick="openOwnerChats()">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                Hộp thư tin nhắn
-                <span class="ap-badge ap-badge--red" id="unreadBadge" style="display:none;"></span>
-              </button>
+            <h3 class="mp-dt-section-title">THÔNG TIN CƠ BẢN</h3>
+            <div class="mp-dt-grid">
+                <div class="mp-dt-card">
+                    <div class="mp-dt-card-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                    <div><div class="mp-dt-card-label">TUỔI</div><p class="mp-dt-card-val">@(string.IsNullOrEmpty(age) ? "Không rõ" : age + " tuổi")</p></div>
+                </div>
+                <div class="mp-dt-card">
+                    <div class="mp-dt-card-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                    <div><div class="mp-dt-card-label">GIỚI TÍNH</div><p class="mp-dt-card-val">@(string.IsNullOrEmpty(gender) ? "Không rõ" : gender)</p></div>
+                </div>
+                <div class="mp-dt-card">
+                    <div class="mp-dt-card-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" transform="rotate(-45 12 12)"/><line x1="9" y1="12" x2="11" y2="14"/></svg></div>
+                    <div><div class="mp-dt-card-label">CHIỀU CAO</div><p class="mp-dt-card-val">@(string.IsNullOrEmpty(height) ? "Không rõ" : height + " cm")</p></div>
+                </div>
+                <div class="mp-dt-card">
+                    <div class="mp-dt-card-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+                    <div><div class="mp-dt-card-label">ĐỊA ĐIỂM MẤT TÍCH</div><p class="mp-dt-card-val">@Model.LastSeenLocation</p></div>
+                </div>
             </div>
-          </div>
-        }
-        @if (isFound)
-        {
-          <div class="ap-panel">
-            <div class="ap-status-banner found">
-              <span class="ap-pulse"></span>
-              ĐÃ TÌM THẤY
+
+            <h3 class="mp-dt-section-title">ĐẶC ĐIỂM NHẬN DẠNG</h3>
+            <p class="mp-dt-text">@(string.IsNullOrEmpty(feature) ? "Không có thông tin thêm" : feature)</p>
+
+            @if (!string.IsNullOrEmpty(content))
+            {
+                <h3 class="mp-dt-section-title">NỘI DUNG BÀI VIẾT</h3>
+                <p class="mp-dt-text">@content</p>
+            }
+
+            <h3 class="mp-dt-section-title">THÔNG TIN LIÊN HỆ</h3>
+            <div class="mp-dt-contact" style="background: #E0F2F1; border: 1px solid #B2DFDB; border-radius: 12px; padding: 24px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px;">
+                <div class="mp-dt-contact-left" style="display: flex; align-items: center; gap: 16px;">
+                    <div class="mp-dt-contact-icon" style="width: 48px; height: 48px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #00695C; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </div>
+                    <div>
+                        <div class="mp-dt-contact-label" style="font-size: 12px; font-weight: 700; color: #00695C; text-transform: uppercase; margin-bottom: 4px;">THÔNG TIN LIÊN HỆ</div>
+                        <p class="mp-dt-contact-val" style="font-size: 24px; font-weight: 800; color: #111827; margin: 0 0 4px 0;">@(string.IsNullOrEmpty(contact) ? "Chưa cung cấp" : contact)</p>
+                        <p style="font-size: 13px; color: #6b7280; margin: 0;">Vui lòng liên hệ nếu có thông tin</p>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(contact)) {
+                    <a href="tel:@contact" class="mp-dt-call-btn" style="background: #00695C; color: white; padding: 12px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l2.28-2.28a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        Gọi ngay
+                    </a>
+                }
             </div>
-          </div>
-        }
-      </div>
 
-      <!-- ── RIGHT ── -->
-      <div class="mp-detail-right">
-        <h1 class="mp-detail-name">@Model.FullName</h1>
-        <p class="mp-detail-time">Đăng lúc @Model.CreatedAt.ToString("HH:mm dd/MM/yyyy")</p>
-
-        <div class="mp-info-section">
-          <h3>Thông tin cơ bản</h3>
-          <div class="mp-info-grid">
-            @if (!string.IsNullOrEmpty(age))
-            { <div class="mp-info-item"><span class="mp-info-label">Tuổi</span><span class="mp-info-value">@age tuổi</span></div> }
-            @if (!string.IsNullOrEmpty(gender))
-            { <div class="mp-info-item"><span class="mp-info-label">Giới tính</span><span class="mp-info-value">@gender</span></div> }
-            @if (!string.IsNullOrEmpty(height) && height != "")
-            { <div class="mp-info-item"><span class="mp-info-label">Chiều cao</span><span class="mp-info-value">@height cm</span></div> }
-            <div class="mp-info-item"><span class="mp-info-label">Địa điểm mất tích</span><span class="mp-info-value">@Model.LastSeenLocation</span></div>
-          </div>
+            @if (Model.User != null)
+            {
+                <h3 class="mp-dt-section-title">NGƯỜI ĐĂNG BÀI</h3>
+                <p class="mp-dt-text" style="font-weight: 700; color: #111827; font-size: 16px; margin-bottom: 4px;">@Model.User.FullName</p>
+                <p style="font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 4px;">Cùng lan tỏa hy vọng <svg width="14" height="14" viewBox="0 0 24 24" fill="#00695C" stroke="#00695C"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></p>
+            }
         </div>
-
-        @if (!string.IsNullOrEmpty(feature))
-        {
-          <div class="mp-info-section">
-            <h3>Đặc điểm nhận dạng</h3>
-            <p class="mp-detail-text">@feature</p>
-          </div>
-        }
-
-        @if (!string.IsNullOrEmpty(content))
-        {
-          <div class="mp-info-section">
-            <h3>Nội dung bài viết</h3>
-            <p class="mp-detail-text">@content</p>
-          </div>
-        }
-
-        @if (!string.IsNullOrEmpty(contact))
-        {
-          <div class="mp-info-section mp-contact-box">
-            <h3>Thông tin liên hệ</h3>
-            <p class="mp-contact-info">@contact</p>
-          </div>
-        }
-
-        @if (Model.User != null)
-        {
-          <div class="mp-info-section">
-            <h3>Người đăng bài</h3>
-            <p>@Model.User.FullName</p>
-          </div>
-        }
-
-
-      </div>
     </div>
-  </div>
+</div>
+
+<div style="max-width: 1200px; margin: 60px auto 40px; padding: 0 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 800; color: #111827; margin: 0;">Những người đang được tìm kiếm</h2>
+        <a href="/MissingPerson" style="color: #15803d; font-weight: 600; text-decoration: none; font-size: 14px;">Xem tất cả &gt;</a>
+    </div>
+    
+    <div class="mp-grid" style="grid-template-columns: repeat(4, 1fr); gap: 24px;">
+        @foreach (var p in relatedItems)
+        {
+            var pAge = "";
+            var pGender = "";
+            var pDesc = "";
+            if (!string.IsNullOrEmpty(p.Description)) {
+                var parts = p.Description.Split('|');
+                foreach(var part in parts) {
+                    if (part.StartsWith("TUOI:")) pAge = part.Substring(5);
+                    if (part.StartsWith("GIOITINH:")) pGender = part.Substring(9);
+                    if (part.StartsWith("NOIDUNG:")) pDesc = part.Substring(8);
+                }
+            }
+            if (string.IsNullOrEmpty(pDesc)) pDesc = p.Description;
+            if (pDesc != null && pDesc.Length > 60) pDesc = pDesc.Substring(0, 60) + "...";
+
+            <a href="/MissingPerson/Details/@p.Id" class="mp-card" style="text-decoration: none; display: flex; flex-direction: column; height: 100%; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; transition: all 0.2s;">
+                <div style="height: 180px; overflow: hidden; position: relative;">
+                    <img src="@(string.IsNullOrEmpty(p.ImageUrl) ? "/images/missing/default.png" : p.ImageUrl)" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <span style="position: absolute; top: 12px; left: 12px; background: #fff; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; color: #ef4444; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <span style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%;"></span>
+                        Đang tìm kiếm
+                    </span>
+                </div>
+                <div style="padding: 16px; flex-grow: 1; display: flex; flex-direction: column;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">@p.FullName</h3>
+                    <div style="font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        @p.LastSeenLocation
+                    </div>
+                    <div style="font-size: 12px; color: #4b5563; line-height: 1.4; margin-bottom: 12px;">
+                        @(!string.IsNullOrEmpty(pGender) ? pGender + ", " : "")@(!string.IsNullOrEmpty(pAge) ? pAge + " tuổi, " : "")@pDesc
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; margin-top: auto;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                </div>
+            </a>
+        }
+    </div>
+
+    <!-- Bottom Banner -->
+    <div style="background: #f0fdf4; border-radius: 16px; padding: 24px 32px; display: flex; justify-content: space-between; align-items: center; margin-top: 40px; border: 1px solid #dcfce7; flex-wrap: wrap; gap: 20px;">
+        <div style="display: flex; gap: 20px; align-items: center;">
+            <div style="width: 56px; height: 56px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex-shrink: 0;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#15803d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+            </div>
+            <div>
+                <h3 style="font-size: 18px; font-weight: 800; color: #111827; margin: 0 0 4px 0;">Bạn muốn giúp đỡ?</h3>
+                <p style="font-size: 14px; color: #4b5563; margin: 0; max-width: 400px; line-height: 1.5;">Chia sẻ thông tin hoặc tham gia cộng đồng để cùng nhau lan tỏa hy vọng.</p>
+            </div>
+        </div>
+        <a href="#" style="background: white; border: 1px solid #15803d; color: #15803d; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            Tham gia cộng đồng
+        </a>
+    </div>
 </div>
 
 

@@ -550,6 +550,16 @@ namespace DaNangSafeMap.Services.Implementations
 
             fullAlert.UpdatedAt = DateTime.Now;
             ApplyLifecycleState(fullAlert, fullAlert.UpdatedAt, resetReviewDue: fullAlert.Status == "PENDING_REVIEW" && previousStatus != "PENDING_REVIEW");
+
+            if (previousStatus != "VISIBLE_VERIFIED" && fullAlert.Status == "VISIBLE_VERIFIED")
+            {
+                var reporter = await _context.Users.FirstOrDefaultAsync(u => u.Id == fullAlert.UserId);
+                if (reporter != null)
+                {
+                    reporter.ReputationScore = Math.Min(10, reporter.ReputationScore + 3);
+                }
+            }
+
             await _alertRepo.UpdateAlertAsync(fullAlert);
 
             if (previousStatus != "PENDING_REVIEW" && fullAlert.Status == "PENDING_REVIEW" && denyCount >= 3)
@@ -1087,6 +1097,11 @@ namespace DaNangSafeMap.Services.Implementations
             });
 
             await _context.SaveChangesAsync();
+            await CreateNotificationsForAdminsAsync(
+                alert.Id,
+                "Có báo cáo vi phạm mới",
+                $"Bài viết \"{alert.Title}\" vừa bị người dùng báo cáo vì nội dung có dấu hiệu vi phạm.",
+                "ALERT_REPORTED");
             return (true, "Đã gửi báo cáo vi phạm");
         }
 

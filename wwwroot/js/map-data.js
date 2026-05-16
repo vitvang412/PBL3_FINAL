@@ -52,7 +52,7 @@ window.SVG_ICONS = SVG_ICONS;
 // STATE
 // ═══════════════════════════════════════════════════════════
 
-let currentHours = 24;
+let currentHours = 0;
 let alertsCache = [];
 let rawAlertsCache = [];
 let alertTypesCache = [];
@@ -73,7 +73,10 @@ let selectedStatuses = new Set();
 let mapLayerState = {
     alertsVisible: true,
     heatmapVisible: true,
-    boundaryVisible: true
+    boundaryVisible: true,
+    labelsVisible: true,
+    poiVisible: true,
+    roadsVisible: true
 };
 
 const PROXIMITY_RADIUS_METERS = 300;
@@ -245,6 +248,18 @@ function initLayerPanel() {
     document.getElementById('layerBoundaryToggle')?.addEventListener('change', e => {
         mapLayerState.boundaryVisible = e.target.checked;
         window.MapLayers?.setBoundary?.(mapLayerState.boundaryVisible);
+    });
+    document.getElementById('layerLabelsToggle')?.addEventListener('change', e => {
+        mapLayerState.labelsVisible = e.target.checked;
+        window.MapLayers?.setLabels?.(mapLayerState.labelsVisible);
+    });
+    document.getElementById('layerPoiToggle')?.addEventListener('change', e => {
+        mapLayerState.poiVisible = e.target.checked;
+        window.MapLayers?.setPoi?.(mapLayerState.poiVisible);
+    });
+    document.getElementById('layerRoadsToggle')?.addEventListener('change', e => {
+        mapLayerState.roadsVisible = e.target.checked;
+        window.MapLayers?.setRoads?.(mapLayerState.roadsVisible);
     });
 }
 
@@ -665,6 +680,23 @@ async function fetchMapAlerts(bounds, fromTime, toTime, includeHidden = false) {
 
     if (!res.ok) return [];
     return await res.json();
+}
+
+function getCurrentTimeRange() {
+    const toTime = new Date();
+    const fromTime = currentHours === 0
+        ? new Date(0)
+        : new Date(toTime.getTime() - currentHours * 3600 * 1000);
+    return { fromTime, toTime };
+}
+
+async function getAlertsInBounds(bounds, options = {}) {
+    if (!bounds) return [];
+    const includeHidden = options.includeHidden ?? showHiddenAlerts;
+    const applyFiltersToResult = options.applyFilters !== false;
+    const { fromTime, toTime } = getCurrentTimeRange();
+    const alerts = await fetchMapAlerts(bounds, fromTime, toTime, includeHidden);
+    return applyFiltersToResult ? applyAlertFilters(alerts) : alerts;
 }
 
 async function fetchHeatmapData(fromTime, toTime) {
@@ -1264,6 +1296,15 @@ function setLayerVisibility(next = {}) {
     if (typeof next.boundaryVisible === 'boolean') {
         window.MapLayers?.setBoundary?.(next.boundaryVisible);
     }
+    if (typeof next.labelsVisible === 'boolean') {
+        window.MapLayers?.setLabels?.(next.labelsVisible);
+    }
+    if (typeof next.poiVisible === 'boolean') {
+        window.MapLayers?.setPoi?.(next.poiVisible);
+    }
+    if (typeof next.roadsVisible === 'boolean') {
+        window.MapLayers?.setRoads?.(next.roadsVisible);
+    }
     refresh();
 }
 
@@ -1290,10 +1331,7 @@ async function refreshData() {
     const map = window.MapCore.getMap();
     if (!map) return;
 
-    const now = new Date();
-    const fromTime = currentHours === 0
-        ? new Date(0)
-        : new Date(now.getTime() - currentHours * 3600 * 1000);
+    const { fromTime, toTime: now } = getCurrentTimeRange();
     const bounds = map.getBounds();
 
     clearAllLayers();
@@ -1602,6 +1640,8 @@ window.MapData = {
     setFilters,
     setLayerVisibility,
     getVisibleAlerts,
+    getAlertsInBounds,
+    getCurrentTimeRange,
     _verify: sendVerification,
     _resolve: markResolved,
     _toggleReportForm: toggleReportForm,
@@ -1633,4 +1673,3 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
-

@@ -88,10 +88,14 @@ function initRouting(map) {
     let storedRoutes = { driving: null, motorbike: null, foot: null };
     let activeMode = 'driving';
     const SAFE_ROUTE_RADIUS_METERS = 250;
+    const SAFE_ROUTE_VERIFIED_RADIUS_METERS = 250;
+    const SAFE_ROUTE_UNVERIFIED_RADIUS_METERS = 140;
+    const SAFE_ROUTE_MAX_ALERT_AGE_HOURS = 72;
     const SAFE_ROUTE_SOURCE_ID = 'safe-route-risk-src';
     const SAFE_ROUTE_FILL_LAYER_ID = 'safe-route-risk-fill';
     const SAFE_ROUTE_STROKE_LAYER_ID = 'safe-route-risk-stroke';
     let lastRiskAlerts = [];
+    let safeRouteRequestSeq = 0;
 
     // ── Pre-fill khi mở từ Place Card ─────────────────────
     if (routeCard) {
@@ -280,8 +284,8 @@ function initRouting(map) {
 
         try {
             const [drivingResult, footResult] = await Promise.allSettled([
-                osrm(coordStart, coordEnd, 'driving'),
-                osrm(coordStart, coordEnd, 'foot'),
+                osrm(coordStart, coordEnd, 'driving', !!safeToggle?.checked),
+                osrm(coordStart, coordEnd, 'foot', !!safeToggle?.checked),
             ]);
 
             const rDriving = drivingResult.status === 'fulfilled' ? drivingResult.value : null;
@@ -414,18 +418,33 @@ function initRouting(map) {
         if (route?.geometry) analyzeSafeRoute(route.geometry);
     });
 
+    document.addEventListener('map:alerts-refreshed', () => {
+        if (!safeToggle?.checked) return;
+        const route = storedRoutes[activeMode] || storedRoutes.driving;
+        if (route?.geometry) analyzeSafeRoute(route.geometry);
+    });
+
     // ─────────────────────────────────────────────────────
     // OSRM Routing
     // ─────────────────────────────────────────────────────
-    async function osrm(s, e, profile) {
+    async function osrm(s, e, profile, preferSafe = false) {
         // OSRM không có profile "motorbike" — gọi 'driving' thay thế
         const p = profile === 'motorbike' ? 'driving' : profile;
         const url = `https://router.project-osrm.org/route/v1/${p}/${s.lng},${s.lat};${e.lng},${e.lat}`
-            + `?overview=full&geometries=geojson`;
+            + `?overview=full&geometries=geojson&alternatives=${preferSafe ? 'true' : 'false'}`;
         const data = await fetchJSON(url);
         if (data?.code === 'Ok' && data.routes?.length) {
-            const r = data.routes[0];
-            return { geometry: r.geometry, distance: r.distance, duration: r.duration };
+            const candidates = data.routes.map(r => ({
+                geometry: r.geometry,
+                distance: r.distance,
+                duration: r.duration
+            }));
+
+            if (!preferSafe || candidates.length === 1) {
+                return candidates[0];
+            }
+
+            return await selectSafestRoute(candidates);
         }
         return null;
     }
@@ -441,6 +460,64 @@ function initRouting(map) {
             if (data?.length) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
         } catch { }
         return null;
+    }
+
+    async function selectSafestRoute(candidates) {
+        const bounds = buildBoundsFromRouteCandidates(candidates);
+        const alerts = await loadSafeRouteAlerts(bounds);
+        if (!alerts.length) {
+            return candidates.sort((a, b) => a.duration - b.duration)[0];
+        }
+
+        return candidates
+            .map(route => ({
+                ...route,
+                _safeScore: scoreRouteAgainstAlerts(route.geometry, alerts)
+            }))
+            .sort((a, b) => a._safeScore - b._safeScore || a.duration - b.duration)[0];
+    }
+
+    async function loadSafeRouteAlerts(bounds) {
+        if (!bounds) return [];
+        if (window.MapData?.getAlertsInBounds) {
+            try {
+                return await window.MapData.getAlertsInBounds(bounds, { applyFilters: true });
+            } catch (e) {
+                console.warn('[ROUTE] Failed to fetch route alerts, fallback to visible cache.', e);
+            }
+        }
+        return window.MapData?.getVisibleAlerts?.() || [];
+    }
+
+    function buildBoundsFromRouteCandidates(candidates) {
+        const bounds = new goongjs.LngLatBounds();
+        let hasPoint = false;
+        (candidates || []).forEach(route => {
+            (route?.geometry?.coordinates || []).forEach(coord => {
+                bounds.extend(coord);
+                hasPoint = true;
+            });
+        });
+        return hasPoint ? bounds : null;
+    }
+
+    function buildRouteBounds(geometry) {
+        return buildBoundsFromRouteCandidates([{ geometry }]);
+    }
+
+    function scoreRouteAgainstAlerts(geometry, alerts) {
+        if (!geometry?.coordinates?.length || !alerts?.length) return 0;
+        return alerts.reduce((sum, alert) => {
+            const risk = getSafeRouteRiskMeta(alert);
+            if (!risk) return sum;
+            const lat = parseFloat(alert.latitude);
+            const lng = parseFloat(alert.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return sum;
+            const distance = minDistanceToRouteMeters([lng, lat], geometry.coordinates);
+            if (distance > risk.radiusMeters) return sum;
+            const proximity = 1 - (distance / risk.radiusMeters);
+            return sum + (risk.weight * Math.max(0.2, proximity));
+        }, 0);
     }
 
     // ─────────────────────────────────────────────────────
@@ -477,25 +554,74 @@ function initRouting(map) {
         clearSafeRouteRisk();
     }
 
-    function analyzeSafeRoute(geometry) {
+    async function analyzeSafeRoute(geometry) {
         if (!geometry?.coordinates?.length) return;
-        const alerts = (window.MapData?.getVisibleAlerts?.() || [])
-            .filter(a => !['RESOLVED', 'REJECTED', 'EXPIRED'].includes(a.status || ''));
+        const requestId = ++safeRouteRequestSeq;
+        const alerts = await loadSafeRouteAlerts(buildRouteBounds(geometry));
+        if (requestId !== safeRouteRequestSeq) return;
+
         const riskAlerts = alerts
             .map(alert => {
+                const risk = getSafeRouteRiskMeta(alert);
+                if (!risk) return null;
+
                 const lat = parseFloat(alert.latitude);
                 const lng = parseFloat(alert.longitude);
                 if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
                 const distance = minDistanceToRouteMeters([lng, lat], geometry.coordinates);
-                return { ...alert, _routeDistance: distance };
+                if (distance > risk.radiusMeters) return null;
+
+                return {
+                    ...alert,
+                    _routeDistance: distance,
+                    _riskRadiusMeters: risk.radiusMeters,
+                    _riskWeight: risk.weight,
+                    _riskKind: risk.kind
+                };
             })
             .filter(Boolean)
-            .filter(alert => alert._routeDistance <= SAFE_ROUTE_RADIUS_METERS)
-            .sort((a, b) => a._routeDistance - b._routeDistance);
+            .sort((a, b) => a._routeDistance - b._routeDistance || b._riskWeight - a._riskWeight);
 
+        if (requestId !== safeRouteRequestSeq) return;
         lastRiskAlerts = riskAlerts;
         drawSafeRouteRisk(riskAlerts);
         renderSafeRouteStatus(riskAlerts);
+    }
+
+    function getSafeRouteRiskMeta(alert) {
+        const status = (alert.status || '').toUpperCase();
+        if (['RESOLVED', 'REJECTED', 'EXPIRED', 'HIDDEN', 'DELETED', 'NEEDS_MORE_INFO', 'NOT_ENOUGH_EVIDENCE'].includes(status)) {
+            return null;
+        }
+
+        const ageHours = getAlertAgeHours(alert);
+        if (ageHours !== null && ageHours > SAFE_ROUTE_MAX_ALERT_AGE_HOURS) {
+            return null;
+        }
+
+        if (status === 'VISIBLE_VERIFIED') {
+            return { radiusMeters: SAFE_ROUTE_VERIFIED_RADIUS_METERS, weight: 3, kind: 'verified' };
+        }
+
+        const trustScore = Number(alert.trustScore || 0);
+        const confirmCount = Number(alert.confirmCount || 0);
+        const denyCount = Number(alert.denyCount || 0);
+        const hasEvidence = !!alert.hasMedia;
+        const isQualifiedUnverified = trustScore >= 60 || hasEvidence || confirmCount > denyCount;
+        if (!isQualifiedUnverified) {
+            return null;
+        }
+
+        return { radiusMeters: SAFE_ROUTE_UNVERIFIED_RADIUS_METERS, weight: 1.25, kind: 'unverified' };
+    }
+
+    function getAlertAgeHours(alert) {
+        const source = alert.incidentTime || alert.createdAt;
+        if (!source) return null;
+        const parsed = new Date(source);
+        if (Number.isNaN(parsed.getTime())) return null;
+        return Math.max(0, (Date.now() - parsed.getTime()) / 3600000);
     }
 
     function drawSafeRouteRisk(riskAlerts) {
@@ -562,17 +688,19 @@ function initRouting(map) {
         if (!riskAlerts.length) {
             safeStatus.className = 'gm-safe-route-status gm-safe-route-status--ok';
             safeStatus.style.display = 'block';
-            safeStatus.innerHTML = '<strong>Tuyến hiện tại khá an toàn.</strong><span>Không có điểm nóng nào trong phạm vi 250m.</span>';
+            safeStatus.innerHTML = '<strong>Tuyến hiện tại khá an toàn.</strong><span>Không có điểm nóng đủ rủi ro nào bám sát tuyến đi.</span>';
             return;
         }
 
         const nearest = Math.round(riskAlerts[0]._routeDistance);
         const commonType = getMostCommonType(riskAlerts);
+        const verifiedCount = riskAlerts.filter(alert => alert._riskKind === 'verified').length;
+        const unverifiedCount = riskAlerts.length - verifiedCount;
         safeStatus.className = 'gm-safe-route-status gm-safe-route-status--warn';
         safeStatus.style.display = 'block';
         safeStatus.innerHTML = `
             <strong>Có ${riskAlerts.length} điểm nóng gần tuyến.</strong>
-            <span>Gần nhất ${nearest}m${commonType ? ` · Nhiều nhất: ${escHtml(commonType)}` : ''}</span>
+            <span>Gần nhất ${nearest}m${verifiedCount ? ` · ${verifiedCount} đã xác thực` : ''}${unverifiedCount ? ` · ${unverifiedCount} chưa xác thực mạnh` : ''}${commonType ? ` · Nhiều nhất: ${escHtml(commonType)}` : ''}</span>
             <button type="button" id="btnViewRouteRisks">Xem điểm rủi ro</button>
         `;
         document.getElementById('btnViewRouteRisks')?.addEventListener('click', focusRiskAlerts);

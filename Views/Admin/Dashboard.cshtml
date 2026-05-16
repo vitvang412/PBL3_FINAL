@@ -1,82 +1,227 @@
+@using DaNangSafeMap.Models.ViewModels.Admin
+@model AdminDashboardViewModel
+
 @{
     ViewData["Title"] = "Quản lý người dùng";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+
+    if (Model == null)
+    {
+        <div class="admin-flash admin-flash--error">Dữ liệu không khả dụng. Vui lòng thử lại.</div>
+        return;
+    }
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="fw-bold mb-0">Danh sách Người dùng</h5>
-</div>
+<section class="admin-overview admin-overview--compact">
+    @if (TempData != null && TempData["AdminSuccess"] != null)
+    {
+        <div class="admin-flash admin-flash--success">@TempData["AdminSuccess"]</div>
+    }
+    @if (TempData != null && TempData["AdminError"] != null)
+    {
+        <div class="admin-flash admin-flash--error">@TempData["AdminError"]</div>
+    }
 
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
-                <thead class="text-muted" style="background-color: #f8f9fa;">
+    <div class="admin-overview__hero admin-overview__hero--compact">
+        <div class="admin-overview__copy">
+            <span class="admin-overview__badge">Bảng điều phối quản trị</span>
+            <h2>Quản lý người dùng gọn hơn, rõ trạng thái hơn và thao tác trực tiếp ngay trên dashboard.</h2>
+            <p>Theo dõi nhanh tài khoản đang hoạt động, tài khoản quản trị và các trường hợp cần khóa hoặc gỡ chặn mà không phải chuyển nhiều màn hình.</p>
+        </div>
+
+        <div class="admin-overview__spotlight admin-overview__spotlight--stack">
+            <div class="admin-overview__spotlight-card">
+                <span>Tài khoản hiển thị</span>
+                <strong>@Model.FilteredCount</strong>
+            </div>
+            <div class="admin-overview__spotlight-meta">
+                <span>Trang @Model.Page / @Model.TotalPages</span>
+                <span>@Model.TotalUsers tổng tài khoản</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-overview__stats admin-overview__stats--compact">
+        <article class="admin-metric-card admin-metric-card--compact">
+            <div class="admin-metric-card__icon admin-metric-card__icon--green">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div class="admin-metric-card__body">
+                <span class="admin-metric-card__label">Tổng người dùng</span>
+                <strong class="admin-metric-card__value">@Model.TotalUsers</strong>
+            </div>
+        </article>
+
+        <article class="admin-metric-card admin-metric-card--compact">
+            <div class="admin-metric-card__icon admin-metric-card__icon--blue">
+                <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            </div>
+            <div class="admin-metric-card__body">
+                <span class="admin-metric-card__label">Đang hoạt động</span>
+                <strong class="admin-metric-card__value">@Model.ActiveUsers</strong>
+            </div>
+        </article>
+
+        <article class="admin-metric-card admin-metric-card--compact">
+            <div class="admin-metric-card__icon admin-metric-card__icon--amber">
+                <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18A2 2 0 0 0 3.53 21h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+            <div class="admin-metric-card__body">
+                <span class="admin-metric-card__label">Đã chặn</span>
+                <strong class="admin-metric-card__value">@Model.BannedUsers</strong>
+            </div>
+        </article>
+
+        <article class="admin-metric-card admin-metric-card--compact">
+            <div class="admin-metric-card__icon admin-metric-card__icon--slate">
+                <svg viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5z"></path><path d="M19 21a7 7 0 0 0-14 0"></path></svg>
+            </div>
+            <div class="admin-metric-card__body">
+                <span class="admin-metric-card__label">Tài khoản admin</span>
+                <strong class="admin-metric-card__value">@Model.AdminUsers</strong>
+            </div>
+        </article>
+    </div>
+
+    <div class="admin-panel admin-panel--compact">
+        <div class="admin-panel__head admin-panel__head--tight">
+            <div>
+                <h3>Quản lý người dùng</h3>
+                <p>Lọc, đổi vai trò và cập nhật trạng thái tài khoản trực tiếp trên một bảng.</p>
+            </div>
+            <div class="admin-panel__actions">
+                <span class="admin-chip admin-chip--soft">@Model.FilteredCount bản ghi</span>
+            </div>
+        </div>
+
+        <form method="get" class="admin-toolbar">
+            <div class="admin-toolbar__search">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" name="search" value="@Model.Search" placeholder="Tìm theo tên hoặc email..." />
+            </div>
+            <select name="role" class="admin-toolbar__select">
+                <option value="">Tất cả vai trò</option>
+                <option value="User" selected="@(Model.RoleFilter == "User")">User</option>
+                <option value="Moderator" selected="@(Model.RoleFilter == "Moderator")">Moderator</option>
+                <option value="Admin" selected="@(Model.RoleFilter == "Admin")">Admin</option>
+            </select>
+            <select name="status" class="admin-toolbar__select">
+                <option value="">Tất cả trạng thái</option>
+                <option value="active" selected="@(Model.StatusFilter == "active")">Hoạt động</option>
+                <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Tạm ngưng</option>
+                <option value="banned" selected="@(Model.StatusFilter == "banned")">Đã chặn</option>
+                <option value="locked" selected="@(Model.StatusFilter == "locked")">Đang khóa</option>
+            </select>
+            <button type="submit" class="admin-btn admin-btn--primary">Lọc</button>
+            <a href="/Admin/Dashboard" class="admin-btn admin-btn--ghost">Đặt lại</a>
+        </form>
+
+        <div class="admin-table-wrap">
+            <table class="admin-table admin-table--users">
+                <thead>
                     <tr>
-                        <th class="border-0 rounded-start ps-4 py-3" scope="col">Họ và Tên</th>
-                        <th class="border-0 py-3" scope="col">Email</th>
-                        <th class="border-0 py-3" scope="col">Vai trò</th>
-                        <th class="border-0 py-3 rounded-end" scope="col">Trạng thái</th>
+                        <th>Người dùng</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Đăng nhập gần nhất</th>
+                        <th class="text-end">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
+                @if (!Model.Users.Any())
+                {
                     <tr>
-                        <td class="ps-4 py-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-weight: 600;">P</div>
-                                <div>
-                                    <h6 class="mb-0 fw-semibold text-dark">Phú Đỗ</h6>
-                                </div>
+                        <td colspan="5">
+                            <div class="admin-empty">
+                                <strong>Không có tài khoản nào khớp bộ lọc.</strong>
+                                <span>Thử đổi từ khóa hoặc bỏ bớt bộ lọc để xem lại danh sách.</span>
                             </div>
                         </td>
-                        <td class="py-3">admin@safemap.vn</td>
-                        <td class="py-3"><span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-semibold border border-primary-subtle" style="color: var(--primary) !important; background-color: var(--hover-bg) !important;">Admin</span></td>
-                        <td class="py-3"><span class="text-success fw-medium">● Hoạt động</span></td>
                     </tr>
-                    
-                    <tr>
-                        <td class="ps-4 py-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-weight: 600;">H</div>
-                                <div>
-                                    <h6 class="mb-0 fw-semibold text-dark">Hoa Lê</h6>
+                }
+                else
+                {
+                    @foreach (var user in Model.Users)
+                    {
+                        <tr>
+                            <td>
+                                <div class="admin-user-row">
+                                    <div class="admin-user-row__avatar @(user.Role == "Admin" ? "admin-user-row__avatar--admin" : "")">
+                                        @(string.IsNullOrWhiteSpace(user.FullName) ? "U" : user.FullName.Substring(0, 1).ToUpper())
+                                    </div>
+                                    <div>
+                                        <strong>@user.FullName</strong>
+                                        <span>@user.Email</span>
+                                        <span class="admin-user-row__meta">Đăng ký @user.CreatedAt.ToString("dd/MM/yyyy") · @user.AuthProvider</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="py-3">hoale@example.com</td>
-                        <td class="py-3"><span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-2 fw-semibold">User</span></td>
-                        <td class="py-3"><span class="text-success fw-medium">● Hoạt động</span></td>
-                    </tr>
-                    
-                    <tr>
-                        <td class="ps-4 py-3">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px; font-weight: 600;">N</div>
-                                <div>
-                                    <h6 class="mb-0 fw-semibold text-dark">Nhật Trường</h6>
+                            </td>
+                            <td>
+                                <form asp-action="UpdateUserRole" method="post" class="admin-inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <input type="hidden" name="search" value="@Model.Search" />
+                                    <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                    <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                    <input type="hidden" name="page" value="@Model.Page" />
+                                    <select name="roleValue" class="admin-role-select" onchange="this.form.submit()" @(user.IsCurrentAdmin ? "disabled" : null)>
+                                        <option value="User" selected="@(user.Role == "User")">User</option>
+                                        <option value="Moderator" selected="@(user.Role == "Moderator")">Moderator</option>
+                                        <option value="Admin" selected="@(user.Role == "Admin")">Admin</option>
+                                    </select>
+                                </form>
+                            </td>
+                            <td>
+                                <span class="admin-status admin-status--@user.StatusClass">@user.StatusLabel</span>
+                            </td>
+                            <td>
+                                <span class="admin-time">
+                                    @(user.LastLoginAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa đăng nhập")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="admin-actions">
+                                    <form asp-action="ToggleUserActive" method="post" class="admin-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                        <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <button type="submit" class="admin-btn admin-btn--soft" @(user.IsCurrentAdmin ? "disabled" : null)>
+                                            @(user.IsActive ? "Tạm ngưng" : "Kích hoạt")
+                                        </button>
+                                    </form>
+                                    <form asp-action="ToggleUserBan" method="post" class="admin-inline-form">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        <input type="hidden" name="search" value="@Model.Search" />
+                                        <input type="hidden" name="role" value="@Model.RoleFilter" />
+                                        <input type="hidden" name="status" value="@Model.StatusFilter" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <button type="submit" class="admin-btn admin-btn--danger" @(user.IsCurrentAdmin ? "disabled" : null)>
+                                            @(user.IsBanned ? "Gỡ chặn" : "Chặn")
+                                        </button>
+                                    </form>
                                 </div>
-                            </div>
-                        </td>
-                        <td class="py-3">nhattruong@example.com</td>
-                        <td class="py-3"><span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-2 fw-semibold">User</span></td>
-                        <td class="py-3"><span class="text-muted fw-medium">○ Hạn chế</span></td>
-                    </tr>
+                            </td>
+                        </tr>
+                    }
+                }
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
 
-<nav aria-label="Page navigation" class="mt-4">
-  <ul class="pagination justify-content-end border-0">
-    <li class="page-item disabled">
-      <a class="page-link shadow-sm border-0 bg-white me-2" href="#" tabindex="-1" aria-disabled="true" style="border-radius: 8px;">Trước</a>
-    </li>
-    <li class="page-item"><a class="page-link shadow-sm border-0 border me-2 text-white text-center fw-medium" href="#" style="border-radius: 8px; background-color: var(--primary); width: 38px;">1</a></li>
-    <li class="page-item"><a class="page-link shadow-sm border-0 text-dark bg-white me-2 text-center" href="#" style="border-radius: 8px; width: 38px;">2</a></li>
-    <li class="page-item"><a class="page-link shadow-sm border-0 text-dark bg-white me-2 text-center" href="#" style="border-radius: 8px; width: 38px;">3</a></li>
-    <li class="page-item">
-      <a class="page-link shadow-sm border-0 text-dark bg-white" href="#" style="border-radius: 8px;">Sau</a>
-    </li>
-  </ul>
-</nav>
+        @if (Model.TotalPages > 1)
+        {
+            <div class="admin-pagination">
+                <a class="admin-page-btn @(Model.Page <= 1 ? "disabled" : "")" href="@(Model.Page <= 1 ? "#" : Url.Action("Dashboard", new { search = Model.Search, role = Model.RoleFilter, status = Model.StatusFilter, page = Model.Page - 1 }))">Trước</a>
+                @for (var i = 1; i <= Model.TotalPages; i++)
+                {
+                    <a class="admin-page-btn @(i == Model.Page ? "active" : "")" href="@Url.Action("Dashboard", new { search = Model.Search, role = Model.RoleFilter, status = Model.StatusFilter, page = i })">@i</a>
+                }
+                <a class="admin-page-btn @(Model.Page >= Model.TotalPages ? "disabled" : "")" href="@(Model.Page >= Model.TotalPages ? "#" : Url.Action("Dashboard", new { search = Model.Search, role = Model.RoleFilter, status = Model.StatusFilter, page = Model.Page + 1 }))">Sau</a>
+            </div>
+        }
+    </div>
+</section>

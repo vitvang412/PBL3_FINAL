@@ -246,7 +246,7 @@ body {
     position: absolute;
     top: calc(100% + 8px);
     right: -10px;
-    width: 320px;
+    width: 260px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -438,7 +438,7 @@ body {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    width: 216px;
+    width: 180px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
